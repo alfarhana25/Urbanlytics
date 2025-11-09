@@ -54,7 +54,7 @@ Our system can integrate open data APIs (e.g. **OpenStreetMap**, **World Bank**,
 | Component | Technology |
 |------------|-------------|
 | Frontend | TypeScript |
-| Map Visualization | Mapbox API  |
+| Map Visualization | Leaflet API  |
 | Styling | Tailwind CSS |
 | Deployment | Netlify |
 
