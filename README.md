@@ -143,5 +143,5 @@ Visit **http://localhost:3000** to explore Urbanlytics.
 
 ## 💡 Vision
 
-CityScope envisions a world where **urban data is transparent, accessible, and empowering**.  
+Urbanlytics envisions a world where **urban data is transparent, accessible, and empowering**.  
 By turning complex statistics into interactive visuals, we help build **smarter, safer, and more inclusive cities** — one neighbourhood at a time.
