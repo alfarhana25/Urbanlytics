@@ -86,7 +86,6 @@ This project combines open and public datasets to provide community-level insigh
 - Aggregates rental and housing market data by community.  
 - Used to estimate **Cost of Living** and **Property Value** indicators.
 
----
 
 All datasets are aggregated for visualization and insight purposes under fair-use and open-data guidelines.
 
@@ -97,8 +96,7 @@ All datasets are aggregated for visualization and insight purposes under fair-us
 
 ### Prerequisites
 - Node.js (v20+)
-- npm or yarn
-- A Mapbox API token (free for developers)
+- npm
 
 ### Installation
 ```bash
