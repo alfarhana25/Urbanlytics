@@ -5,7 +5,7 @@ import { METRIC_TYPES, deriveMetricBundle, metricValue, colorFor, intensityFor }
 
 const DEFAULT_CENTER = [51.0447, -114.0719];
 const DEFAULT_ZOOM = 10.5;
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png";
+const TILE_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png";
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>';
 const NAME_KEYS = ["name", "Name", "COMMUNITY", "COMM_NAME", "COMMUNITY_NAME"];
 const GEOJSON_URL = "/data/Community_District_Boundaries_20251108.geojson";
@@ -152,7 +152,7 @@ export default function Calgary3DMap() {
 
   // ---------- RENDER ----------
   return (
-    <div className="relative bg-zinc-950 text-zinc-100 flex flex-col h-[calc(100vh-56px)]">
+    <div className="relative bg-zinc-100 text-zinc-950 flex flex-col h-[calc(100vh-56px)]">
       {/* Map container must have fixed height to render properly */}
       <div ref={mapContainerRef} id="map" className="flex-1 w-full h-full min-h-[600px]" />
 
