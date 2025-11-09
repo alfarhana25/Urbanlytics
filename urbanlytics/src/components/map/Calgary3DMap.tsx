@@ -1,7 +1,7 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Loader } from "lucide-react";
-import { METRIC_TYPES, deriveMetricBundle, metricValue, colorFor, intensityFor } from "@/lib/risk";
+import { METRIC_TYPES } from "@/lib/risk"; // we won't use colorFor/intensityFor now
 import { getCommunityData } from "@/app/utils/communityUtils";
 import { useCommunityStore } from "@/app/stores/communityStore";
 import communitiesData from "@/data/communities/urbanlytics_communities.json";
@@ -24,7 +24,7 @@ const BASEMAPS = {
     id: "osm",
     label: "OSM Standard",
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    labelsUrl: null as string | null, // labels baked in
+    labelsUrl: null as string | null,
     attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   },
   positron: {
@@ -37,7 +37,6 @@ const BASEMAPS = {
 } as const;
 
 const PALETTE = {
-  beigeBg: "#F6F0E9",
   beigePanel: "#FBF7EF",
   beigeBorder: "#E6DCCD",
   ink: "#2B271F",
@@ -47,6 +46,82 @@ const PALETTE = {
   oliveLight: "#A3B18A",
   oliveTint: "#DDE6D7",
 };
+
+// ---------- small helpers ----------
+const normName = (s: string) => (s ?? "").toLowerCase().trim();
+const getNameFromFeature = (feature: any) => NAME_KEYS.reduce((acc, k) => acc || feature?.properties?.[k], "") || "Unknown";
+
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+const scale01 = (val: number, min: number, max: number) => (!isFinite(val) || !isFinite(min) || !isFinite(max) || max <= min ? 0.5 : clamp01((val - min) / (max - min)));
+
+// Green → Yellow → Red
+function colorGYR(t: number) {
+  t = clamp01(t);
+  if (t <= 0.5) {
+    const k = t / 0.5; // #10b981 → #f59e0b
+    const r = Math.round(16 + (245 - 16) * k);
+    const g = Math.round(185 + (158 - 185) * k);
+    const b = Math.round(129 + (11 - 129) * k);
+    return `rgb(${r},${g},${b})`;
+  }
+  const k = (t - 0.5) / 0.5; // #f59e0b → #f43f5e
+  const r = Math.round(245 + (244 - 245) * k);
+  const g = Math.round(158 + (63 - 158) * k);
+  const b = Math.round(11 + (94 - 11) * k);
+  return `rgb(${r},${g},${b})`;
+}
+
+// Try to pull a metric value out of your JSON record
+type MetricSemantics = "cost" | "afford" | "score"; // cost: higher=worse, afford: higher=better
+function extractMetricValue(rec: any, metric: string): { value: number | null; kind: MetricSemantics } {
+  if (!rec) return { value: null, kind: "score" };
+
+  const fromList = (arr: any[], matcher: (l: string) => boolean) => {
+    if (!Array.isArray(arr)) return null;
+    const m = arr.find((x) => matcher(String(x?.label || "").toLowerCase()));
+    return typeof m?.score === "number" && isFinite(m.score) ? m.score : null;
+  };
+
+  // CRIME: look for "Crime" in primary/secondary metrics
+  if (metric === METRIC_TYPES.CRIME) {
+    const v = fromList(rec.primaryMetrics, (l) => l.includes("crime")) ?? fromList(rec.secondaryMetrics, (l) => l.includes("crime")) ?? rec?.metrics?.crime ?? rec?.crime ?? rec?.crimeScore ?? null;
+    return { value: typeof v === "number" ? v : null, kind: "cost" };
+  }
+
+  // POLLUTION: "Air Quality"/"AQI"/"Pollution"
+  if (metric === METRIC_TYPES.POLLUTION) {
+    const v =
+      fromList(rec.primaryMetrics, (l) => l.includes("air quality") || l.includes("aqi") || l.includes("pollution")) ??
+      fromList(rec.secondaryMetrics, (l) => l.includes("air quality") || l.includes("aqi") || l.includes("pollution")) ??
+      rec?.metrics?.aqi ??
+      rec?.metrics?.pollution ??
+      rec?.aqi ??
+      rec?.pollution ??
+      null;
+    return { value: typeof v === "number" ? v : null, kind: "cost" }; // higher = worse AQI
+  }
+
+  // PRICING: prefer "Cost of Living" (affordability-like), else pricing/price fields (cost-like)
+  if (metric === METRIC_TYPES.PRICING) {
+    const costOfLiving =
+      fromList(rec.primaryMetrics, (l) => l.includes("cost of living") || l.includes("afford")) ??
+      fromList(rec.secondaryMetrics, (l) => l.includes("cost of living") || l.includes("afford")) ??
+      rec?.metrics?.affordability ??
+      rec?.affordabilityScore ??
+      null;
+    if (typeof costOfLiving === "number") return { value: costOfLiving, kind: "afford" }; // higher = better
+
+    const priceScore = rec?.metrics?.pricing ?? rec?.pricing ?? fromList(rec.primaryMetrics, (l) => l.includes("pricing") || l.includes("price")) ?? fromList(rec.secondaryMetrics, (l) => l.includes("pricing") || l.includes("price")) ?? null;
+    if (typeof priceScore === "number" && priceScore <= 100) return { value: priceScore, kind: "cost" };
+
+    const rawPrice = rec?.avgPrice ?? rec?.medianPrice ?? rec?.housePrice ?? null;
+    if (typeof rawPrice === "number") return { value: rawPrice, kind: "cost" };
+
+    return { value: null, kind: "score" };
+  }
+
+  return { value: null, kind: "score" };
+}
 
 function TopRightPanel({ selectedMetric, onMetricChange, basemap, onBasemapChange }: { selectedMetric: string; onMetricChange: (m: string) => void; basemap: keyof typeof BASEMAPS; onBasemapChange: (b: keyof typeof BASEMAPS) => void }) {
   const metrics = [
@@ -72,7 +147,7 @@ function TopRightPanel({ selectedMetric, onMetricChange, basemap, onBasemapChang
               className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
               style={{
                 backgroundColor: isSelected ? PALETTE.olive : PALETTE.oliveTint,
-                color: isSelected ? PALETTE.beigePanel : PALETTE.inkSoft,
+                color: isSelected ? "#fff" : PALETTE.inkSoft,
                 border: `1px solid ${isSelected ? PALETTE.oliveDark : PALETTE.beigeBorder}`,
               }}>
               {m.label}
@@ -146,8 +221,6 @@ function BottomRightLegend({ selectedMetric }: { selectedMetric: string }) {
   );
 }
 
-const getNameFromFeature = (feature: any) => NAME_KEYS.reduce((acc, k) => acc || feature?.properties?.[k], "") || "Unknown";
-
 export default function Calgary3DMap() {
   const [selectedMetric, setSelectedMetric] = useState(METRIC_TYPES.CRIME);
   const [selectedBasemap, setSelectedBasemap] = useState<keyof typeof BASEMAPS>("voyager");
@@ -164,6 +237,39 @@ export default function Calgary3DMap() {
 
   const setCommunity = useCommunityStore((s) => s.setCommunity);
 
+  // Build a name → record map and metric domains from your JSON
+  const { byName, domains } = useMemo(() => {
+    const by: Record<string, any> = {};
+    (communitiesData as any[]).forEach((rec: any) => {
+      const key = normName(rec?.name || rec?.Name || rec?.COMMUNITY || rec?.COMM_NAME || rec?.COMMUNITY_NAME || "") || null;
+      if (key) by[key] = rec;
+    });
+
+    const metrics = [METRIC_TYPES.CRIME, METRIC_TYPES.POLLUTION, METRIC_TYPES.PRICING] as const;
+    const dom: Record<string, { min: number; max: number }> = {};
+
+    metrics.forEach((m) => {
+      let min = Infinity;
+      let max = -Infinity;
+      Object.values(by).forEach((rec: any) => {
+        const { value } = extractMetricValue(rec, m);
+        if (typeof value === "number" && isFinite(value)) {
+          min = Math.min(min, value);
+          max = Math.max(max, value);
+        }
+      });
+
+      if (!isFinite(min) || !isFinite(max) || max <= min) {
+        // safe fallbacks; wide for pricing to accommodate raw $ values if present
+        dom[m] = m === METRIC_TYPES.PRICING ? { min: 0, max: 1_000_000 } : { min: 0, max: 100 };
+      } else {
+        dom[m] = { min, max };
+      }
+    });
+
+    return { byName: by, domains: dom };
+  }, []);
+
   // Load Leaflet
   useEffect(() => {
     const css = document.createElement("link");
@@ -177,41 +283,44 @@ export default function Calgary3DMap() {
     document.body.appendChild(js);
   }, []);
 
-  // Base style (choropleth fill)
-  const baseStyleFor = (feature: any) => {
+  // Style per feature — uses communitiesData
+  const styleForFeature = (feature: any) => {
     const name = getNameFromFeature(feature);
-    const bundle = deriveMetricBundle(name);
-    const val = metricValue(bundle, selectedMetric);
+    const rec = byName[normName(name)];
+    let { value, kind } = extractMetricValue(rec, selectedMetric);
+
+    // If not found in your JSON, render neutral mid (won't crash)
+    if (value == null) {
+      value = 50;
+      kind = "score";
+      // console.warn("[Map] No communitiesData match or metric missing for:", name);
+    }
+
+    const { min, max } = domains[selectedMetric] || { min: 0, max: 100 };
+    let t = scale01(Number(value), min, max);
+
+    // Semantics:
+    // - Crime/Pollution are "cost": higher = worse → redder (no inversion)
+    // - Pricing:
+    //    * If we detected "afford" (Cost of Living; higher=more affordable) → invert so affordable=green
+    //    * If it's cost-like (price/expensive index, raw $) → no inversion (higher=red)
+    if (selectedMetric === METRIC_TYPES.PRICING && kind === "afford") {
+      t = 1 - t;
+    }
+
     return {
-      color: "#ffffff", // subtle white edge so colors pop on colorful basemaps
+      color: "#ffffff",
       weight: 1.2,
-      fillColor: colorFor(val, selectedMetric),
-      fillOpacity: Math.min(0.9, 0.5 + intensityFor(val, selectedMetric) * 0.6),
+      fillColor: colorGYR(t),
+      fillOpacity: 0.68,
     };
   };
 
-  // Helpers to toggle CSS class on selected path
-  const applySelectedClass = (layer: any) => {
-    const path: SVGPathElement | null = layer?._path || null;
-    if (!path) return;
-    path.classList.add("pulse-selected");
-    layer.setStyle({ color: PALETTE.oliveDark, weight: 2.2 });
-    if (layer.bringToFront) layer.bringToFront();
-  };
-
-  const clearSelectedClass = (layer: any) => {
-    const path: SVGPathElement | null = layer?._path || null;
-    if (!path) return;
-    path.classList.remove("pulse-selected");
-    layer.setStyle(baseStyleFor(layer.feature));
-  };
-
-  // function to (re)apply basemap layers
+  // (re)apply basemap
   const applyBasemap = () => {
     if (!mapRef.current || !(window as any).L) return;
     const L = (window as any).L;
 
-    // remove old tiles
     if (baseTileRef.current) {
       mapRef.current.removeLayer(baseTileRef.current);
       baseTileRef.current = null;
@@ -223,10 +332,12 @@ export default function Calgary3DMap() {
 
     const def = BASEMAPS[selectedBasemap];
     baseTileRef.current = L.tileLayer(def.url, { attribution: def.attr }).addTo(mapRef.current);
-
-    // labels-only overlay (stays on top for readability)
     if (def.labelsUrl) {
-      labelTileRef.current = L.tileLayer(def.labelsUrl, { attribution: def.attr, pane: "overlayPane" }).addTo(mapRef.current);
+      labelTileRef.current = L.tileLayer(def.labelsUrl, {
+        attribution: def.attr,
+        pane: "overlayPane",
+        opacity: 0.85,
+      }).addTo(mapRef.current);
     }
   };
 
@@ -248,10 +359,9 @@ export default function Calgary3DMap() {
       .then((res) => res.json())
       .then((gj) => {
         const geo = (geoJsonLayerRef.current = L.geoJSON(gj, {
-          style: (feature: any) => baseStyleFor(feature),
+          style: styleForFeature,
           onEachFeature: (feature: any, layer: any) => {
             const name = getNameFromFeature(feature);
-
             layer.bindTooltip(name, { sticky: true, direction: "top", offset: [0, -6] });
 
             layer.on("click", () => {
@@ -259,10 +369,17 @@ export default function Calgary3DMap() {
               if (data) setCommunity(data);
 
               if (selectedLayerRef.current && selectedLayerRef.current !== layer) {
-                clearSelectedClass(selectedLayerRef.current);
+                const prev = selectedLayerRef.current;
+                const p: SVGPathElement | null = prev?._path || null;
+                if (p) p.classList.remove("pulse-selected");
+                prev.setStyle(styleForFeature(prev.feature));
               }
               selectedLayerRef.current = layer;
-              applySelectedClass(layer);
+
+              const p: SVGPathElement | null = layer?._path || null;
+              if (p) p.classList.add("pulse-selected");
+              layer.setStyle({ color: PALETTE.oliveDark, weight: 2.2 });
+              if (layer.bringToFront) layer.bringToFront();
             });
 
             layer.on("mouseover", function () {
@@ -270,13 +387,13 @@ export default function Calgary3DMap() {
               this.setStyle({
                 weight: 2,
                 color: "#ffffff",
-                fillOpacity: Math.min(0.95, (this.options.fillOpacity ?? 0.6) + 0.15),
+                fillOpacity: 0.9,
               });
             });
 
             layer.on("mouseout", function () {
               if (selectedLayerRef.current === this) return;
-              this.setStyle(baseStyleFor(this.feature));
+              this.setStyle(styleForFeature(this.feature));
             });
           },
         }).addTo(map));
@@ -287,7 +404,11 @@ export default function Calgary3DMap() {
       .catch(() => setLoading(false));
 
     return () => {
-      if (selectedLayerRef.current) clearSelectedClass(selectedLayerRef.current);
+      if (selectedLayerRef.current) {
+        const prev = selectedLayerRef.current;
+        const p: SVGPathElement | null = prev?._path || null;
+        if (p) p.classList.remove("pulse-selected");
+      }
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -296,20 +417,20 @@ export default function Calgary3DMap() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leafletReady]);
 
-  // Restyle polygons when metric changes (keep pulse)
+  // Recolor polygons when metric changes (keep pulse)
   useEffect(() => {
     if (!geoJsonLayerRef.current) return;
 
     geoJsonLayerRef.current.eachLayer((layer: any) => {
       if (layer === selectedLayerRef.current) return;
-      layer.setStyle(baseStyleFor(layer.feature));
+      layer.setStyle(styleForFeature(layer.feature));
     });
 
     if (selectedLayerRef.current) {
       const layer = selectedLayerRef.current;
-      const base = baseStyleFor(layer.feature);
-      layer.setStyle({ ...base, color: PALETTE.oliveDark, weight: 2.2 });
-      applySelectedClass(layer);
+      layer.setStyle({ ...styleForFeature(layer.feature), color: PALETTE.oliveDark, weight: 2.2 });
+      const p: SVGPathElement | null = layer?._path || null;
+      if (p) p.classList.add("pulse-selected");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMetric]);
@@ -323,14 +444,11 @@ export default function Calgary3DMap() {
 
   return (
     <div className="relative bg-zinc-100 text-zinc-950 flex flex-col h-[calc(100vh-56px)]">
-      {/* Global CSS */}
+      {/* Global CSS for tiles & pulse */}
       <style jsx global>{`
-        /* Make raster tiles pop subtly without overdoing it */
         #map .leaflet-tile {
           filter: saturate(1.05) contrast(1.03);
         }
-
-        /* Selected polygon pulse */
         .pulse-selected {
           animation: breatheFill 1.8s ease-in-out infinite;
           filter: drop-shadow(0 0 6px rgba(63, 95, 67, 0.55));
@@ -338,15 +456,15 @@ export default function Calgary3DMap() {
         }
         @keyframes breatheFill {
           0% {
-            fill-opacity: 0.5;
+            fill-opacity: 0.55;
             stroke-width: 1.2;
           }
           50% {
-            fill-opacity: 0.9;
+            fill-opacity: 0.95;
             stroke-width: 3;
           }
           100% {
-            fill-opacity: 0.5;
+            fill-opacity: 0.55;
             stroke-width: 1.2;
           }
         }
