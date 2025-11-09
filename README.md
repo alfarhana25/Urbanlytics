@@ -13,7 +13,7 @@ Urbanlytics provides a **map-based visualization platform** where users can:
 - Instantly view a **heat map** representation of the selected indicator.  
 - Click on any neighbourhood to open a **detailed analytics card** with multiple statistics and trends.  
 
-Whether you’re finding a safe place to live, studying urban development, or planning inclusive city policies — CityScope gives you the insights you need at a glance.
+Whether you’re finding a safe place to live, studying urban development, or planning inclusive city policies — Urbanlytics gives you the insights you need at a glance.
 
 ---
 
