@@ -310,14 +310,14 @@ export default function HomePage() {
             <span className="rounded-full border border-[#e5d6c2] px-4 py-2">Environmental health</span>
           </div>
           <a
-            href="/explore"
+            href="/base"
             className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-[#2e261b] px-16 py-5 text-xl font-semibold text-[#f6f0e9] shadow-[0_45px_120px_-70px_rgba(46,38,27,0.75)] transition duration-300 hover:bg-[#46392d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8d7253]"
             onClick={(event) => {
               event.preventDefault();
               if (showConfetti) return;
               setShowConfetti(true);
               setTimeout(() => {
-                router.push("/explore");
+                router.push("/base");
               }, 700);
             }}
           >
