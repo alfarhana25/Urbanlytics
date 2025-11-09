@@ -1,6 +1,6 @@
-# 🌆 CityScope — Neighbourhood Analytics Platform
+# 🌆 Urbanlytics — Neighbourhood Analytics Platform
 
-CityScope is an interactive web application that helps users explore and understand different neighbourhoods within a city using **data-driven insights** and **visual analytics**.  
+Urbanlytics is an interactive web application that helps users explore and understand different neighbourhoods within a city using **data-driven insights** and **visual analytics**.  
 It transforms raw city data into a clear, visual story — empowering residents, policymakers, and businesses to make informed decisions about safety, affordability, and livability.
 
 ---
