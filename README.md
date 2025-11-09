@@ -53,7 +53,7 @@ Our system can integrate open data APIs (e.g. **Socrata**) to fetch and visualiz
 
 | Component | Technology |
 |------------|-------------|
-| Frontend | TypeScript |
+| Frontend | Next.js/TypeScript |
 | Map Visualization | Leaflet API  |
 | Styling | Tailwind CSS |
 | Deployment | Netlify |
