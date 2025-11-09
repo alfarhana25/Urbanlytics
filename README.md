@@ -23,7 +23,7 @@ Whether you’re finding a safe place to live, studying urban development, or pl
 Enter the name of your city to load a map with all neighbourhood boundaries clearly marked.
 
 ### 2. 🌡️ Dynamic Heat Maps  
-Toggle between data layers (crime, price, pollution, or population density). The map dynamically updates to visualize the chosen dataset using colour gradients.
+Toggle between data layers (crime, price, pollution or population density). The map dynamically updates to visualize the chosen dataset using colour gradients.
 
 ### 3. 📊 Neighbourhood Analytics Panel  
 Click on a neighbourhood to view:
@@ -34,7 +34,7 @@ Click on a neighbourhood to view:
 - Community demographics and growth trends  
 
 ### 4. ⚡ Real-Time Data Integration  
-Our system can integrate open data APIs (e.g. **OpenStreetMap**, **World Bank**, **Socrata**, or **Carbon Interface**) to fetch and visualize the latest statistics.
+Our system can integrate open data APIs (e.g. **Socrata**) to fetch and visualize the latest statistics.
 
 ---
 
