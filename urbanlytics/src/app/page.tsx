@@ -8,7 +8,6 @@ export default function HomePage() {
     <main className="h-dvh w-dvw overflow-hidden">
       <TopBar />
       <div className="flex h-[calc(100vh-56px)]">
-        <LeftPanel />
         <div className="flex-1">
           <RiskMap />
         </div>
