@@ -53,12 +53,43 @@ Our system can integrate open data APIs (e.g. **OpenStreetMap**, **World Bank**,
 
 | Component | Technology |
 |------------|-------------|
-| Frontend |  |
+| Frontend | TypeScript |
 | Map Visualization | Mapbox API  |
-| Backend |  |
 | Styling | Tailwind CSS |
-| Data Sources |  |
-| Deployment |  |
+| Deployment | Netlify |
+
+# 🗂️ Data Sources
+
+This project combines open and public datasets to provide community-level insights for Calgary, including safety, air quality, and housing metrics.
+
+---
+
+### 🧾 Crime Statistics
+**Source:** [Socrata Open Data API](https://dev.socrata.com/docs/endpoints.html)  
+**Provider:** City of Calgary Open Data Portal  
+- Offers community-based crime and incident data.  
+- Used to generate **Crime Rate** and **Safety Score** metrics.
+
+---
+
+### 🌫️ Air Pollution
+**Source:** [IQAir – Calgary Air Quality Map](https://www.iqair.com/ca/air-quality-map?zoomLevel=10&lat=51.0814&lng=-114.1403)  
+**Provider:** IQAir / AirVisual  
+- Provides real-time AQI and PM2.5 readings from Calgary monitoring stations.  
+- Used to calculate the **Air Quality** and **Environmental Health** scores.
+
+---
+
+### 🏡 Housing Prices
+**Source:** [RentFaster.ca](https://www.rentfaster.ca/)  
+**Provider:** RentFaster Canada  
+- Aggregates rental and housing market data by community.  
+- Used to estimate **Cost of Living** and **Property Value** indicators.
+
+---
+
+All datasets are aggregated for visualization and insight purposes under fair-use and open-data guidelines.
+
 
 ---
 
