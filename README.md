@@ -1,7 +1,21 @@
 # 🌆 Urbanlytics — Neighbourhood Analytics Platform
 
-Urbanlytics is an interactive web application that helps users explore and understand different neighbourhoods within a city using **data-driven insights** and **visual analytics**.  
-It transforms raw city data into a clear, visual story — empowering residents, policymakers, and businesses to make informed decisions about safety, affordability, and livability.
+## 🌟 Inspiration
+When some of our teammates had to relocate for internships, we realized how difficult it is to move to a new city without knowing what each neighbourhood is truly like.  
+Online research can only go so far — you often need local insights to understand if an area is safe at night, how good the air quality is, how expensive housing can get, or how accessible transit is.  
+We found no single platform that brought all this data together — that realization inspired **Urbanlytics**, a one-stop hub for neighbourhood analytics.
+
+---
+
+## 💡 What It Does
+**Urbanlytics** is a data-driven neighbourhood analytics platform that helps people explore and compare communities within a city.  
+It provides a **map-based dashboard** where users can view:
+- Crime rates and safety scores  
+- Air pollution and livability metrics  
+- Average housing costs and transit accessibility  
+- Overall community insights in one visual interface  
+
+Whether you’re moving, planning, or researching — Urbanlytics helps you make informed, data-backed decisions about where to live.
 
 ---
 
