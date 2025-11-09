@@ -15,18 +15,11 @@ const TILE_URL =
   "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png";
 const TILE_ATTR =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>';
-
 const NAME_KEYS = ["name", "Name", "COMMUNITY", "COMM_NAME", "COMMUNITY_NAME"];
 const GEOJSON_URL = "/data/Community_District_Boundaries_20251108.geojson";
 
-// ---------- TOP-RIGHT FILTER PANEL ----------
-function TopRightPanel({
-  selectedMetric,
-  onMetricChange,
-}: {
-  selectedMetric: string;
-  onMetricChange: (metric: string) => void;
-}) {
+// ---------- PANELS ----------
+function TopRightPanel({ selectedMetric, onMetricChange }) {
   const metrics = [
     { key: METRIC_TYPES.PRICING, label: "Pricing" },
     { key: METRIC_TYPES.CRIME, label: "Crime" },
@@ -35,12 +28,11 @@ function TopRightPanel({
   ];
 
   return (
-    <div className="absolute top-4 right-4 z-[500] bg-zinc-900/90 backdrop-blur-md border border-zinc-800 rounded-xl p-4 shadow-xl w-60">
+    <div className="bg-zinc-900/90 backdrop-blur-md border border-zinc-800 rounded-xl p-4 shadow-xl w-60">
       <h3 className="text-sm font-semibold text-zinc-100 mb-3">
         Neighbourhood Analytics
       </h3>
-
-      <div className="grid grid-cols-2 gap-2 mb-2">
+      <div className="grid grid-cols-2 gap-2">
         {metrics.map((m) => (
           <button
             key={m.key}
@@ -59,8 +51,7 @@ function TopRightPanel({
   );
 }
 
-// ---------- BOTTOM-RIGHT COLOR LEGEND ----------
-function BottomRightLegend({ selectedMetric }: { selectedMetric: string }) {
+function BottomRightLegend({ selectedMetric }) {
   const legendItems =
     selectedMetric === METRIC_TYPES.CRIME
       ? [
@@ -87,7 +78,7 @@ function BottomRightLegend({ selectedMetric }: { selectedMetric: string }) {
         ];
 
   return (
-    <div className="absolute bottom-4 right-4 z-[500] bg-zinc-900/90 backdrop-blur-md border border-zinc-800 rounded-xl p-4 shadow-xl w-56">
+    <div className="bg-zinc-900/90 backdrop-blur-md border border-zinc-800 rounded-xl p-4 shadow-xl w-56">
       <h4 className="text-xs font-semibold text-zinc-300 mb-2">
         {selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)} Scale
       </h4>
@@ -106,11 +97,12 @@ function BottomRightLegend({ selectedMetric }: { selectedMetric: string }) {
   );
 }
 
-// ---------- MAP ----------
+// ---------- MAIN MAP ----------
 export default function Calgary3DMap() {
   const [selectedMetric, setSelectedMetric] = useState(METRIC_TYPES.CRIME);
-  const mapRef = useRef<any>(null);
-  const layerRef = useRef<any>(null);
+  const mapContainerRef = useRef(null);
+  const mapRef = useRef(null);
+  const layerRef = useRef(null);
   const [leafletReady, setLeafletReady] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -128,11 +120,11 @@ export default function Calgary3DMap() {
     document.body.appendChild(js);
   }, []);
 
-  // Initialize map once
+  // Initialize map
   useEffect(() => {
-    if (!leafletReady || mapRef.current) return;
+    if (!leafletReady || !mapContainerRef.current || mapRef.current) return;
 
-    const map = window.L.map("map", {
+    const map = window.L.map(mapContainerRef.current, {
       center: DEFAULT_CENTER,
       zoom: DEFAULT_ZOOM,
       zoomControl: false,
@@ -142,11 +134,12 @@ export default function Calgary3DMap() {
     window.L.control.zoom({ position: "bottomleft" }).addTo(map);
     window.L.tileLayer(TILE_URL, { attribution: TILE_ATTR }).addTo(map);
 
+    // Load GeoJSON
     fetch(GEOJSON_URL)
       .then((res) => res.json())
       .then((gj) => {
         const layer = window.L.geoJSON(gj, {
-          style: (feature: any) => {
+          style: (feature) => {
             const name =
               NAME_KEYS.reduce(
                 (acc, k) => acc || feature.properties?.[k],
@@ -162,17 +155,18 @@ export default function Calgary3DMap() {
             };
           },
         }).addTo(map);
+
         layerRef.current = layer;
+        setTimeout(() => map.invalidateSize(), 300); // ✅ ensures correct sizing
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [leafletReady]);
 
-  // Update polygon colors when metric changes
+  // Update polygons on metric change
   useEffect(() => {
     if (!layerRef.current) return;
-
-    layerRef.current.eachLayer((layer: any) => {
+    layerRef.current.eachLayer((layer) => {
       const feature = layer.feature;
       const name =
         NAME_KEYS.reduce(
@@ -181,7 +175,6 @@ export default function Calgary3DMap() {
         ) || "Unknown";
       const bundle = deriveMetricBundle(name);
       const val = metricValue(bundle, selectedMetric);
-
       layer.setStyle({
         fillColor: colorFor(val, selectedMetric),
         fillOpacity: intensityFor(val, selectedMetric),
@@ -189,22 +182,35 @@ export default function Calgary3DMap() {
     });
   }, [selectedMetric]);
 
+  // ---------- RENDER ----------
   return (
-    <div className="relative h-screen w-full bg-zinc-950 text-zinc-100">
+    <div className="relative bg-zinc-950 text-zinc-100 flex flex-col h-[calc(100vh-56px)]">
+      {/* Map container must have fixed height to render properly */}
+      <div
+        ref={mapContainerRef}
+        id="map"
+        className="flex-1 w-full h-full min-h-[600px]"
+      />
+
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 z-10">
-          <Loader className="animate-spin mx-auto mb-3 text-zinc-400" size={32} />
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950 z-10">
+          <Loader className="animate-spin text-zinc-400 mb-3" size={32} />
           <p className="text-zinc-400">Loading map…</p>
         </div>
       )}
-      <div id="map" className="w-full h-full" />
 
-      {/* ✅ Controls */}
-      <TopRightPanel
-        selectedMetric={selectedMetric}
-        onMetricChange={setSelectedMetric}
-      />
-      <BottomRightLegend selectedMetric={selectedMetric} />
+      {/* Overlay panels */}
+      <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+        <div className="flex justify-end items-start p-4 pointer-events-auto">
+          <TopRightPanel
+            selectedMetric={selectedMetric}
+            onMetricChange={setSelectedMetric}
+          />
+        </div>
+        <div className="flex justify-end items-end p-4 pointer-events-auto">
+          <BottomRightLegend selectedMetric={selectedMetric} />
+        </div>
+      </div>
     </div>
   );
 }
