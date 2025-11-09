@@ -44,10 +44,7 @@ Our system can integrate open data APIs (e.g. **OpenStreetMap**, **World Bank**,
    Built using **React (Next.js)** with **Mapbox** for geospatial rendering.  
    The interface uses a clean, minimal UI for accessibility and performance.
 
-2. **Backend**:  
-   Powered by **Node.js** or **Firebase**, handling city search, dataset queries, and API calls to retrieve real-time neighbourhood data.
-
-3. **Visualization Layer**:  
+2. **Visualization Layer**:  
    Dynamic heat maps are generated using **Mapbox GL JS** or **Leaflet**, adapting color scales based on normalized indicator values.
 
 ---
