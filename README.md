@@ -1,19 +1,19 @@
-# 🌆 CityScope — Neighbourhood Analytics Platform
+# 🌆 Urbanlytics — Neighbourhood Analytics Platform
 
-CityScope is an interactive web application that helps users explore and understand different neighbourhoods within a city using **data-driven insights** and **visual analytics**.  
+Urbanlytics is an interactive web application that helps users explore and understand different neighbourhoods within a city using **data-driven insights** and **visual analytics**.  
 It transforms raw city data into a clear, visual story — empowering residents, policymakers, and businesses to make informed decisions about safety, affordability, and livability.
 
 ---
 
 ## 🚀 Overview
 
-CityScope provides a **map-based visualization platform** where users can:
+Urbanlytics provides a **map-based visualization platform** where users can:
 - Search for any **city** and view its **neighbourhoods** outlined on the map.  
-- Select key urban indicators such as **crime rate**, **housing prices**, **pollution**, and **population density**.  
+- Select key urban indicators such as **crime rate**, **housing prices** & **pollution**.  
 - Instantly view a **heat map** representation of the selected indicator.  
 - Click on any neighbourhood to open a **detailed analytics card** with multiple statistics and trends.  
 
-Whether you’re finding a safe place to live, studying urban development, or planning inclusive city policies — CityScope gives you the insights you need at a glance.
+Whether you’re finding a safe place to live, studying urban development, or planning inclusive city policies — Urbanlytics gives you the insights you need at a glance.
 
 ---
 
@@ -23,7 +23,7 @@ Whether you’re finding a safe place to live, studying urban development, or pl
 Enter the name of your city to load a map with all neighbourhood boundaries clearly marked.
 
 ### 2. 🌡️ Dynamic Heat Maps  
-Toggle between data layers (crime, price, pollution, or population density). The map dynamically updates to visualize the chosen dataset using colour gradients.
+Toggle between data layers (crime, price, pollution or population density). The map dynamically updates to visualize the chosen dataset using colour gradients.
 
 ### 3. 📊 Neighbourhood Analytics Panel  
 Click on a neighbourhood to view:
@@ -34,7 +34,7 @@ Click on a neighbourhood to view:
 - Community demographics and growth trends  
 
 ### 4. ⚡ Real-Time Data Integration  
-Our system can integrate open data APIs (e.g. **OpenStreetMap**, **World Bank**, **Socrata**, or **Carbon Interface**) to fetch and visualize the latest statistics.
+Our system can integrate open data APIs (e.g. **Socrata**) to fetch and visualize the latest statistics.
 
 ---
 
@@ -44,11 +44,8 @@ Our system can integrate open data APIs (e.g. **OpenStreetMap**, **World Bank**,
    Built using **React (Next.js)** with **Mapbox** for geospatial rendering.  
    The interface uses a clean, minimal UI for accessibility and performance.
 
-2. **Backend**:  
-   Powered by **Node.js** or **Firebase**, handling city search, dataset queries, and API calls to retrieve real-time neighbourhood data.
-
-3. **Visualization Layer**:  
-   Dynamic heat maps are generated using **Mapbox GL JS** or **Leaflet**, adapting color scales based on normalized indicator values.
+2. **Visualization Layer**:  
+   Dynamic heat maps are generated using **Leaflet**, adapting color scales based on normalized indicator values.
 
 ---
 
@@ -56,12 +53,42 @@ Our system can integrate open data APIs (e.g. **OpenStreetMap**, **World Bank**,
 
 | Component | Technology |
 |------------|-------------|
-| Frontend |  |
-| Map Visualization | Mapbox API  |
-| Backend |  |
+| Frontend | TypeScript |
+| Map Visualization | Leaflet API  |
 | Styling | Tailwind CSS |
-| Data Sources |  |
-| Deployment |  |
+| Deployment | Netlify |
+
+# 🗂️ Data Sources
+
+This project combines open and public datasets to provide community-level insights for Calgary, including safety, air quality, and housing metrics.
+
+---
+
+### 🧾 Crime Statistics
+**Source:** [Socrata Open Data API](https://dev.socrata.com/docs/endpoints.html)  
+**Provider:** City of Calgary Open Data Portal  
+- Offers community-based crime and incident data.  
+- Used to generate **Crime Rate** and **Safety Score** metrics.
+
+---
+
+### 🌫️ Air Pollution
+**Source:** [IQAir – Calgary Air Quality Map](https://www.iqair.com/ca/air-quality-map?zoomLevel=10&lat=51.0814&lng=-114.1403)  
+**Provider:** IQAir / AirVisual  
+- Provides real-time AQI and PM2.5 readings from Calgary monitoring stations.  
+- Used to calculate the **Air Quality** and **Environmental Health** scores.
+
+---
+
+### 🏡 Housing Prices
+**Source:** [RentFaster.ca](https://www.rentfaster.ca/)  
+**Provider:** RentFaster Canada  
+- Aggregates rental and housing market data by community.  
+- Used to estimate **Cost of Living** and **Property Value** indicators.
+
+
+All datasets are aggregated for visualization and insight purposes under fair-use and open-data guidelines.
+
 
 ---
 
@@ -69,27 +96,26 @@ Our system can integrate open data APIs (e.g. **OpenStreetMap**, **World Bank**,
 
 ### Prerequisites
 - Node.js (v20+)
-- npm or yarn
-- A Mapbox API token (free for developers)
+- npm
 
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/cityscope.git
-cd cityscope
+git clone https://github.com/yourusername/urbanlytics.git
+cd urbanlytics
 
 # Install dependencies
 npm install
 
 # Set up environment variables
 cp .env.example .env.local
-# Add your Mapbox token and API keys inside .env.local
+# Add your API keys inside .env.local
 
 # Run the development server
 npm run dev
 ```
 
-Visit **http://localhost:3000** to explore CityScope.
+Visit **http://localhost:3000** to explore Urbanlytics.
 
 ---
 
@@ -117,5 +143,5 @@ Visit **http://localhost:3000** to explore CityScope.
 
 ## 💡 Vision
 
-CityScope envisions a world where **urban data is transparent, accessible, and empowering**.  
+Urbanlytics envisions a world where **urban data is transparent, accessible, and empowering**.  
 By turning complex statistics into interactive visuals, we help build **smarter, safer, and more inclusive cities** — one neighbourhood at a time.

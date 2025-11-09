@@ -2,22 +2,36 @@
 
 import { useEffect, useState } from "react";
 import { Search, Moon, Sun } from "lucide-react";
+import { useCommunityStore } from "@/app/stores/communityStore";
+import { getCommunityData } from "@/app/utils/communityUtils";
 
 type Theme = "light" | "dark";
+
+const PALETTE = {
+  beigeBg: "#F6F0E9",
+  beigePanel: "#FBF7EF",
+  beigeBorder: "#E6DCCD",
+  ink: "#2B271F",
+  inkSoft: "#5A5246",
+  olive: "#6B8F71",
+  oliveDark: "#3E5F43",
+  oliveLight: "#A3B18A",
+};
 
 export default function TopBar() {
   const [query, setQuery] = useState("");
   const [theme, setTheme] = useState<Theme>("light");
 
-  // Initialize theme from localStorage or system preference
-  useEffect(() => {
-    const saved = (typeof window !== "undefined" && localStorage.getItem("theme")) as Theme | null;
-    const prefersDark = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initial = saved ?? (prefersDark ? "dark" : "light");
-    setTheme(initial);
-  }, []);
+  const setCommunity = useCommunityStore((s) => s.setCommunity);
+  const clearCommunity = useCommunityStore((s) => s.clearCommunity);
 
-  // Apply theme to <html> and persist
+  // useEffect(() => {
+  //   const saved = (typeof window !== "undefined" && localStorage.getItem("theme")) as Theme | null;
+  //   const prefersDark = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  //   const initial = saved ?? (prefersDark ? "dark" : "light");
+  //   setTheme(initial);
+  // }, []);
+
   useEffect(() => {
     if (typeof document === "undefined") return;
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -26,51 +40,75 @@ export default function TopBar() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Search:", query);
-    // TODO: wire into your map/filter logic
+    const trimmed = query.trim();
+    if (!trimmed) {
+      clearCommunity();
+      return;
+    }
+
+    const data = getCommunityData(trimmed);
+    if (data) {
+      setCommunity(data);
+      console.log("✅ Found community:", data.name);
+    } else {
+      console.warn("⚠️ No match found for:", trimmed);
+      clearCommunity();
+    }
   };
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-white/70 bg-white border-b border-zinc-200 text-zinc-900
-                       dark:bg-zinc-950/80 dark:border-zinc-800 dark:text-white px-6 h-14 flex items-center justify-between">
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-14 px-6 backdrop-blur transition-colors duration-300"
+      style={{
+        background: theme === "dark" ? "rgba(24, 24, 24, 0.85)" : `linear-gradient(180deg, rgba(255,255,255,0.9), ${PALETTE.beigePanel})`,
+        borderBottom: `1px solid ${theme === "dark" ? "#3E5F43" : PALETTE.beigeBorder}`,
+        color: theme === "dark" ? "#F6F0E9" : PALETTE.ink,
+      }}>
       {/* Left: Brand */}
-      <h1 className="text-lg font-semibold tracking-tight">Urbanlytics — Real-Time Risk Dashboard</h1>
+      <h1 className="text-lg font-semibold tracking-tight" style={{ color: theme === "dark" ? "#FBF7EF" : PALETTE.oliveDark }}>
+        Urbanlytics — Real-Time Risk Dashboard
+      </h1>
 
       {/* Center: Search */}
       <form onSubmit={handleSearch} className="flex-1 max-w-md mx-6 relative">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+        <Search className="absolute left-3 top-2.5 h-4 w-4 pointer-events-none" style={{ color: theme === "dark" ? "#A3B18A" : "#6B8F71" }} />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search neighbourhoods..."
-          className="w-full pl-9 pr-10 py-2 text-sm rounded-lg border
-                     bg-zinc-100 border-zinc-300 placeholder-zinc-500 text-zinc-900
-                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                     dark:bg-zinc-900 dark:border-zinc-700 dark:placeholder-zinc-500 dark:text-white"
-          aria-label="Search"
+          className="w-full pl-9 pr-10 py-2 text-sm rounded-lg border outline-none transition-all"
+          style={{
+            backgroundColor: theme === "dark" ? "rgba(32,32,32,0.9)" : "#FFFFFFCC",
+            borderColor: theme === "dark" ? "rgba(163,177,138,0.25)" : PALETTE.beigeBorder,
+            color: theme === "dark" ? "#FBF7EF" : PALETTE.ink,
+            boxShadow: theme === "light" ? `0 2px 4px rgba(62,95,67,0.08)` : "none",
+          }}
         />
       </form>
 
       {/* Right: Nav + Theme toggle */}
       <div className="flex items-center gap-4">
-        <nav className="hidden sm:flex gap-4 text-sm text-zinc-600 dark:text-zinc-400">
-          <button className="hover:text-zinc-900 dark:hover:text-white transition-colors">Now</button>
-          <button className="hover:text-zinc-900 dark:hover:text-white transition-colors">Risk Legend</button>
-          <button className="hover:text-zinc-900 dark:hover:text-white transition-colors">Explain Risk</button>
-        </nav>
+        <nav
+          className="hidden sm:flex gap-4 text-sm transition-colors"
+          style={{
+            color: theme === "dark" ? "#A3B18A" : PALETTE.oliveDark,
+          }}></nav>
 
         {/* Theme toggle */}
-        <button
+        {/* <button
           onClick={toggleTheme}
           aria-label="Toggle dark mode"
-          className="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-100
-                     dark:border-zinc-700 dark:hover:bg-zinc-800 transition-colors">
+          className="p-2 rounded-lg border transition-colors"
+          style={{
+            borderColor: theme === "dark" ? "rgba(163,177,138,0.25)" : PALETTE.beigeBorder,
+            backgroundColor: theme === "dark" ? "rgba(45,45,45,0.6)" : "rgba(251,247,239,0.8)",
+            color: theme === "dark" ? "#FBF7EF" : PALETTE.oliveDark,
+          }}>
           {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-        </button>
+        </button> */}
       </div>
     </header>
   );
