@@ -7,7 +7,7 @@ It transforms raw city data into a clear, visual story — empowering residents,
 
 ## 🚀 Overview
 
-CityScope provides a **map-based visualization platform** where users can:
+Urbanlytics provides a **map-based visualization platform** where users can:
 - Search for any **city** and view its **neighbourhoods** outlined on the map.  
 - Select key urban indicators such as **crime rate**, **housing prices**, **pollution**, and **population density**.  
 - Instantly view a **heat map** representation of the selected indicator.  
