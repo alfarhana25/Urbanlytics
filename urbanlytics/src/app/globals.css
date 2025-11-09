@@ -24,3 +24,27 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+/* Keep the map always below other UI elements */
+.leaflet-container {
+  z-index: 0 !important;
+}
+
+/* Make sure your topbar always sits above map */
+.topbar {
+  position: relative;
+  z-index: 50;
+}
+
+/* Sidebar always above map but below topbar */
+.sidebar {
+  position: relative;
+  z-index: 40;
+}
+
+/* Map legends / popups above base map, below topbar */
+.leaflet-control,
+.neighborhood-label {
+  z-index: 20 !important;
+}

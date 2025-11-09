@@ -56,12 +56,12 @@ Our system can integrate open data APIs (e.g. **OpenStreetMap**, **World Bank**,
 
 | Component | Technology |
 |------------|-------------|
-| Frontend | Next.js / React |
-| Map Visualization | Mapbox API / Leaflet |
-| Backend | Node.js / Express / Firebase |
+| Frontend |  |
+| Map Visualization | Mapbox API  |
+| Backend |  |
 | Styling | Tailwind CSS |
-| Data Sources | OpenStreetMap, World Bank, Socrata, Carbon Interface |
-| Deployment | AWS / Vercel |
+| Data Sources |  |
+| Deployment |  |
 
 ---
 
