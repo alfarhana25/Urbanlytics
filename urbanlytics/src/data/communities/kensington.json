@@ -1,0 +1,72 @@
+{
+  "name": "Kensington",
+  "city": "Calgary",
+  "description": "Vibrant urban community near downtown",
+  "primaryMetrics": [
+    {
+      "icon": "Shield",
+      "label": "Crime Score",
+      "score": 72,
+      "cityAverage": 65,
+      "description": "Safe neighborhood with active community watch programs",
+      "color": "from-blue-500 to-cyan-500",
+      "trend": "+3 vs last year"
+    },
+    {
+      "icon": "GraduationCap",
+      "label": "School Ratings",
+      "score": 82,
+      "cityAverage": 75,
+      "description": "Quality schools and proximity to University of Calgary",
+      "color": "from-purple-500 to-pink-500",
+      "trend": "Top 30% in city"
+    },
+    {
+      "icon": "Bus",
+      "label": "Transit Access",
+      "score": 95,
+      "cityAverage": 70,
+      "description": "Multiple transit routes and 10 min walk to downtown",
+      "color": "from-emerald-500 to-teal-500",
+      "trend": "3 routes nearby"
+    }
+  ],
+  "secondaryMetrics": [
+    {
+      "icon": "Trees",
+      "label": "Parks & Recreation",
+      "score": 88,
+      "description": "Riley Park, Bow River pathway, and outdoor activities"
+    },
+    {
+      "icon": "UtensilsCrossed",
+      "label": "Dining & Shopping",
+      "score": 95,
+      "description": "Kensington's famous restaurant row and boutique shops"
+    },
+    {
+      "icon": "Footprints",
+      "label": "Walkability",
+      "score": 92,
+      "description": "Highly walkable with Kensington Village at the center"
+    },
+    {
+      "icon": "Wind",
+      "label": "Air Quality",
+      "score": 88,
+      "description": "Good air quality with occasional traffic-related variations"
+    },
+    {
+      "icon": "Home",
+      "label": "Cost of Living",
+      "score": 55,
+      "description": "Higher cost due to central location and desirability"
+    },
+    {
+      "icon": "TrendingUp",
+      "label": "Property Value",
+      "score": 85,
+      "description": "Strong demand with continuous appreciation"
+    }
+  ]
+}

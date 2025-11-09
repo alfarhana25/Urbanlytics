@@ -1,0 +1,72 @@
+{
+  "name": "Brentwood",
+  "city": "Calgary",
+  "description": "Everything newcomers need to know",
+  "primaryMetrics": [
+    {
+      "icon": "Shield",
+      "label": "Crime Score",
+      "score": 78,
+      "cityAverage": 65,
+      "description": "Among the safer communities in northwest Calgary",
+      "color": "from-blue-500 to-cyan-500",
+      "trend": "+5 vs last year"
+    },
+    {
+      "icon": "GraduationCap",
+      "label": "School Ratings",
+      "score": 88,
+      "cityAverage": 75,
+      "description": "Highly-rated schools including University of Calgary nearby",
+      "color": "from-purple-500 to-pink-500",
+      "trend": "Top 20% in city"
+    },
+    {
+      "icon": "Bus",
+      "label": "Transit Access",
+      "score": 92,
+      "cityAverage": 70,
+      "description": "Brentwood C-Train station connects to downtown in 15 min",
+      "color": "from-emerald-500 to-teal-500",
+      "trend": "2 stations nearby"
+    }
+  ],
+  "secondaryMetrics": [
+    {
+      "icon": "Trees",
+      "label": "Parks & Recreation",
+      "score": 85,
+      "description": "Nose Hill Park, community centers, and outdoor trails"
+    },
+    {
+      "icon": "UtensilsCrossed",
+      "label": "Dining & Shopping",
+      "score": 80,
+      "description": "Brentwood Village, cafes, and grocery stores within walking distance"
+    },
+    {
+      "icon": "Footprints",
+      "label": "Walkability",
+      "score": 76,
+      "description": "Pedestrian-friendly with sidewalks and nearby amenities"
+    },
+    {
+      "icon": "Wind",
+      "label": "Air Quality",
+      "score": 90,
+      "description": "Clean air levels (PM2.5 ≈ 3 µg/m³), rated \"Good\""
+    },
+    {
+      "icon": "Home",
+      "label": "Cost of Living",
+      "score": 68,
+      "description": "Affordable rentals, moderate home prices vs city average"
+    },
+    {
+      "icon": "TrendingUp",
+      "label": "Property Value",
+      "score": 73,
+      "description": "Steady growth with redevelopment potential"
+    }
+  ]
+}
