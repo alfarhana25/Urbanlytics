@@ -1,16 +1,32 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { Loader } from "lucide-react";
-import { METRIC_TYPES, deriveMetricBundle, metricValue, colorFor, intensityFor } from "@/lib/risk";
+import {
+  METRIC_TYPES,
+  deriveMetricBundle,
+  metricValue,
+  colorFor,
+  intensityFor,
+} from "@/lib/risk";
+import { getCommunityData } from "@/app/utils/communityUtils";
+import { useCommunityStore } from "@/app/stores/communityStore";
 
 const DEFAULT_CENTER = [51.0447, -114.0719];
 const DEFAULT_ZOOM = 10.5;
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png";
-const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>';
-const NAME_KEYS = ["name", "Name", "COMMUNITY", "COMM_NAME", "COMMUNITY_NAME"];
+const TILE_URL =
+  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png";
+const TILE_ATTR =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>';
+const NAME_KEYS = [
+  "name",
+  "Name",
+  "COMMUNITY",
+  "COMM_NAME",
+  "COMMUNITY_NAME",
+];
 const GEOJSON_URL = "/data/Community_District_Boundaries_20251108.geojson";
 
-// ---------- PANELS ----------
+// ---------- FILTER PANEL ----------
 function TopRightPanel({ selectedMetric, onMetricChange }) {
   const metrics = [
     { key: METRIC_TYPES.PRICING, label: "Pricing" },
@@ -21,10 +37,20 @@ function TopRightPanel({ selectedMetric, onMetricChange }) {
 
   return (
     <div className="bg-zinc-900/90 backdrop-blur-md border border-zinc-800 rounded-xl p-4 shadow-xl w-60">
-      <h3 className="text-sm font-semibold text-zinc-100 mb-3">Neighbourhood Analytics</h3>
+      <h3 className="text-sm font-semibold text-zinc-100 mb-3">
+        Neighbourhood Analytics
+      </h3>
       <div className="grid grid-cols-2 gap-2">
         {metrics.map((m) => (
-          <button key={m.key} onClick={() => onMetricChange(m.key)} className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${selectedMetric === m.key ? "bg-blue-600 text-white" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"}`}>
+          <button
+            key={m.key}
+            onClick={() => onMetricChange(m.key)}
+            className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${
+              selectedMetric === m.key
+                ? "bg-blue-600 text-white"
+                : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            }`}
+          >
             {m.label}
           </button>
         ))}
@@ -33,6 +59,7 @@ function TopRightPanel({ selectedMetric, onMetricChange }) {
   );
 }
 
+// ---------- LEGEND ----------
 function BottomRightLegend({ selectedMetric }) {
   const legendItems =
     selectedMetric === METRIC_TYPES.CRIME
@@ -61,11 +88,16 @@ function BottomRightLegend({ selectedMetric }) {
 
   return (
     <div className="bg-zinc-900/90 backdrop-blur-md border border-zinc-800 rounded-xl p-4 shadow-xl w-56">
-      <h4 className="text-xs font-semibold text-zinc-300 mb-2">{selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)} Scale</h4>
+      <h4 className="text-xs font-semibold text-zinc-300 mb-2">
+        {selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)} Scale
+      </h4>
       <div className="space-y-1">
         {legendItems.map((i, idx) => (
           <div key={idx} className="flex items-center gap-2 text-xs">
-            <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: i.color }} />
+            <span
+              className="inline-block w-3 h-3 rounded"
+              style={{ backgroundColor: i.color }}
+            />
             <span className="text-zinc-400">{i.label}</span>
           </div>
         ))}
@@ -82,12 +114,14 @@ export default function Calgary3DMap() {
   const layerRef = useRef(null);
   const [leafletReady, setLeafletReady] = useState(false);
   const [loading, setLoading] = useState(true);
+  const setCommunity = useCommunityStore((s) => s.setCommunity);
 
-  // Load Leaflet only once
+  // Load Leaflet
   useEffect(() => {
     const css = document.createElement("link");
     css.rel = "stylesheet";
-    css.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css";
+    css.href =
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css";
     document.head.appendChild(css);
 
     const js = document.createElement("script");
@@ -110,13 +144,16 @@ export default function Calgary3DMap() {
     window.L.control.zoom({ position: "bottomleft" }).addTo(map);
     window.L.tileLayer(TILE_URL, { attribution: TILE_ATTR }).addTo(map);
 
-    // Load GeoJSON
     fetch(GEOJSON_URL)
       .then((res) => res.json())
       .then((gj) => {
         const layer = window.L.geoJSON(gj, {
           style: (feature) => {
-            const name = NAME_KEYS.reduce((acc, k) => acc || feature.properties?.[k], "") || "Unknown";
+            const name =
+              NAME_KEYS.reduce(
+                (acc, k) => acc || feature.properties?.[k],
+                ""
+              ) || "Unknown";
             const bundle = deriveMetricBundle(name);
             const val = metricValue(bundle, selectedMetric);
             return {
@@ -126,21 +163,52 @@ export default function Calgary3DMap() {
               fillOpacity: intensityFor(val, selectedMetric),
             };
           },
+          onEachFeature: (feature, layer) => {
+            const name =
+              NAME_KEYS.reduce(
+                (acc, k) => acc || feature.properties?.[k],
+                ""
+              ) || "Unknown";
+
+            // ✅ On click -> publish data to store
+            layer.on("click", () => {
+              const data = getCommunityData(name);
+              if (data) {
+                setCommunity(data);
+              } else {
+                console.warn("No data found for:", name);
+              }
+            });
+
+            // Hover effect
+            layer.on("mouseover", function () {
+              this.setStyle({
+                weight: 2,
+                color: "#3b82f6",
+                fillOpacity: 0.8,
+              });
+            });
+            layer.on("mouseout", function () {
+              layerRef.current?.resetStyle(this);
+            });
+          },
         }).addTo(map);
 
         layerRef.current = layer;
-        setTimeout(() => map.invalidateSize(), 300); // ✅ ensures correct sizing
+        setTimeout(() => map.invalidateSize(), 300);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [leafletReady]);
 
-  // Update polygons on metric change
+  // Update fill on metric change
   useEffect(() => {
     if (!layerRef.current) return;
     layerRef.current.eachLayer((layer) => {
       const feature = layer.feature;
-      const name = NAME_KEYS.reduce((acc, k) => acc || feature.properties?.[k], "") || "Unknown";
+      const name =
+        NAME_KEYS.reduce((acc, k) => acc || feature.properties?.[k], "") ||
+        "Unknown";
       const bundle = deriveMetricBundle(name);
       const val = metricValue(bundle, selectedMetric);
       layer.setStyle({
@@ -150,12 +218,16 @@ export default function Calgary3DMap() {
     });
   }, [selectedMetric]);
 
-  // ---------- RENDER ----------
   return (
     <div className="relative bg-zinc-100 text-zinc-950 flex flex-col h-[calc(100vh-56px)]">
-      {/* Map container must have fixed height to render properly */}
-      <div ref={mapContainerRef} id="map" className="flex-1 w-full h-full min-h-[600px]" />
+      {/* Map container */}
+      <div
+        ref={mapContainerRef}
+        id="map"
+        className="flex-1 w-full h-full min-h-[600px]"
+      />
 
+      {/* Loader */}
       {loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950 z-10">
           <Loader className="animate-spin text-zinc-400 mb-3" size={32} />
@@ -165,9 +237,16 @@ export default function Calgary3DMap() {
 
       {/* Overlay panels */}
       <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-        <div className="flex justify-end items-start p-4 pointer-events-auto">
-          <TopRightPanel selectedMetric={selectedMetric} onMetricChange={setSelectedMetric} />
+        <div
+          className="flex justify-end items-start pointer-events-auto"
+          style={{ padding: "20px" }}
+        >
+          <TopRightPanel
+            selectedMetric={selectedMetric}
+            onMetricChange={setSelectedMetric}
+          />
         </div>
+
         <div className="flex justify-end items-end p-4 pointer-events-auto">
           <BottomRightLegend selectedMetric={selectedMetric} />
         </div>
