@@ -9,7 +9,7 @@ It transforms raw city data into a clear, visual story — empowering residents,
 
 Urbanlytics provides a **map-based visualization platform** where users can:
 - Search for any **city** and view its **neighbourhoods** outlined on the map.  
-- Select key urban indicators such as **crime rate**, **housing prices**, **pollution**, and **population density**.  
+- Select key urban indicators such as **crime rate**, **housing prices** & **pollution**.  
 - Instantly view a **heat map** representation of the selected indicator.  
 - Click on any neighbourhood to open a **detailed analytics card** with multiple statistics and trends.  
 
