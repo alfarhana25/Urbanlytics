@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Search, Moon, Sun } from "lucide-react";
+import { useCommunityStore } from "@/app/stores/communityStore";
+import { getCommunityData } from "@/app/utils/communityUtils";
 
 type Theme = "light" | "dark";
 
@@ -9,10 +11,16 @@ export default function TopBar() {
   const [query, setQuery] = useState("");
   const [theme, setTheme] = useState<Theme>("light");
 
+  // Zustand store actions
+  const setCommunity = useCommunityStore((s) => s.setCommunity);
+  const clearCommunity = useCommunityStore((s) => s.clearCommunity);
+
   // Initialize theme from localStorage or system preference
   useEffect(() => {
     const saved = (typeof window !== "undefined" && localStorage.getItem("theme")) as Theme | null;
-    const prefersDark = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const prefersDark =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
     const initial = saved ?? (prefersDark ? "dark" : "light");
     setTheme(initial);
   }, []);
@@ -24,10 +32,23 @@ export default function TopBar() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
+  // --- 🔍 Handle search ---
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Search:", query);
-    // TODO: wire into your map/filter logic
+    const trimmed = query.trim();
+    if (!trimmed) {
+      clearCommunity();
+      return;
+    }
+
+    const data = getCommunityData(trimmed);
+    if (data) {
+      setCommunity(data);
+      console.log("✅ Found community:", data.name);
+    } else {
+      console.warn("⚠️ No match found for:", trimmed);
+      clearCommunity();
+    }
   };
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
@@ -35,9 +56,12 @@ export default function TopBar() {
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-white/70 bg-white border-b border-zinc-200 text-zinc-900
-                       dark:bg-zinc-950/80 dark:border-zinc-800 dark:text-white px-6 h-14 flex items-center justify-between">
+                 dark:bg-zinc-950/80 dark:border-zinc-800 dark:text-white px-6 h-14 flex items-center justify-between"
+    >
       {/* Left: Brand */}
-      <h1 className="text-lg font-semibold tracking-tight">Urbanlytics — Real-Time Risk Dashboard</h1>
+      <h1 className="text-lg font-semibold tracking-tight">
+        Urbanlytics — Real-Time Risk Dashboard
+      </h1>
 
       {/* Center: Search */}
       <form onSubmit={handleSearch} className="flex-1 max-w-md mx-6 relative">
@@ -58,9 +82,15 @@ export default function TopBar() {
       {/* Right: Nav + Theme toggle */}
       <div className="flex items-center gap-4">
         <nav className="hidden sm:flex gap-4 text-sm text-zinc-600 dark:text-zinc-400">
-          <button className="hover:text-zinc-900 dark:hover:text-white transition-colors">Now</button>
-          <button className="hover:text-zinc-900 dark:hover:text-white transition-colors">Risk Legend</button>
-          <button className="hover:text-zinc-900 dark:hover:text-white transition-colors">Explain Risk</button>
+          <button className="hover:text-zinc-900 dark:hover:text-white transition-colors">
+            Now
+          </button>
+          <button className="hover:text-zinc-900 dark:hover:text-white transition-colors">
+            Risk Legend
+          </button>
+          <button className="hover:text-zinc-900 dark:hover:text-white transition-colors">
+            Explain Risk
+          </button>
         </nav>
 
         {/* Theme toggle */}
@@ -68,8 +98,13 @@ export default function TopBar() {
           onClick={toggleTheme}
           aria-label="Toggle dark mode"
           className="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-100
-                     dark:border-zinc-700 dark:hover:bg-zinc-800 transition-colors">
-          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                     dark:border-zinc-700 dark:hover:bg-zinc-800 transition-colors"
+        >
+          {theme === "dark" ? (
+            <Sun className="h-5 w-5" />
+          ) : (
+            <Moon className="h-5 w-5" />
+          )}
         </button>
       </div>
     </header>
