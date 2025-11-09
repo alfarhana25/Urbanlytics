@@ -8,7 +8,6 @@ import {
   colorFor,
   intensityFor,
 } from "@/lib/risk";
-import Legend from "@/components/ui/ExplainCard";
 
 const DEFAULT_CENTER = [51.0447, -114.0719];
 const DEFAULT_ZOOM = 10.5;
@@ -18,19 +17,103 @@ const TILE_ATTR =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>';
 
 const NAME_KEYS = ["name", "Name", "COMMUNITY", "COMM_NAME", "COMMUNITY_NAME"];
-const LABEL_ZOOM_THRESHOLD = 14.5; // 👈 show labels after this zoom (increased for later appearance)
+const GEOJSON_URL = "/data/Community_District_Boundaries_20251108.geojson";
 
-export default function Calgary3DMap({
+// ---------- TOP-RIGHT FILTER PANEL ----------
+function TopRightPanel({
   selectedMetric,
+  onMetricChange,
 }: {
   selectedMetric: string;
+  onMetricChange: (metric: string) => void;
 }) {
+  const metrics = [
+    { key: METRIC_TYPES.PRICING, label: "Pricing" },
+    { key: METRIC_TYPES.CRIME, label: "Crime" },
+    { key: METRIC_TYPES.POLLUTION, label: "Pollution" },
+    { key: METRIC_TYPES.TRANSIT, label: "Transit" },
+  ];
+
+  return (
+    <div className="absolute top-4 right-4 z-[500] bg-zinc-900/90 backdrop-blur-md border border-zinc-800 rounded-xl p-4 shadow-xl w-60">
+      <h3 className="text-sm font-semibold text-zinc-100 mb-3">
+        Neighbourhood Analytics
+      </h3>
+
+      <div className="grid grid-cols-2 gap-2 mb-2">
+        {metrics.map((m) => (
+          <button
+            key={m.key}
+            onClick={() => onMetricChange(m.key)}
+            className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${
+              selectedMetric === m.key
+                ? "bg-blue-600 text-white"
+                : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------- BOTTOM-RIGHT COLOR LEGEND ----------
+function BottomRightLegend({ selectedMetric }: { selectedMetric: string }) {
+  const legendItems =
+    selectedMetric === METRIC_TYPES.CRIME
+      ? [
+          { color: "#16a34a", label: "Low crime" },
+          { color: "#eab308", label: "Moderate crime" },
+          { color: "#ef4444", label: "High crime" },
+        ]
+      : selectedMetric === METRIC_TYPES.POLLUTION
+      ? [
+          { color: "#22c55e", label: "Good AQI" },
+          { color: "#f59e0b", label: "Moderate AQI" },
+          { color: "#ef4444", label: "Poor AQI" },
+        ]
+      : selectedMetric === METRIC_TYPES.PRICING
+      ? [
+          { color: "#10b981", label: "Affordable" },
+          { color: "#f59e0b", label: "Average" },
+          { color: "#f43f5e", label: "Expensive" },
+        ]
+      : [
+          { color: "#22d3ee", label: "Excellent transit" },
+          { color: "#60a5fa", label: "Good transit" },
+          { color: "#64748b", label: "Limited transit" },
+        ];
+
+  return (
+    <div className="absolute bottom-4 right-4 z-[500] bg-zinc-900/90 backdrop-blur-md border border-zinc-800 rounded-xl p-4 shadow-xl w-56">
+      <h4 className="text-xs font-semibold text-zinc-300 mb-2">
+        {selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)} Scale
+      </h4>
+      <div className="space-y-1">
+        {legendItems.map((i, idx) => (
+          <div key={idx} className="flex items-center gap-2 text-xs">
+            <span
+              className="inline-block w-3 h-3 rounded"
+              style={{ backgroundColor: i.color }}
+            />
+            <span className="text-zinc-400">{i.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------- MAP ----------
+export default function Calgary3DMap() {
+  const [selectedMetric, setSelectedMetric] = useState(METRIC_TYPES.CRIME);
   const mapRef = useRef<any>(null);
   const layerRef = useRef<any>(null);
   const labelLayerRef = useRef<any>(null);
   const [leafletReady, setLeafletReady] = useState(false);
   const [loading, setLoading] = useState(true);
-  const geojsonUrl = "/data/Community_District_Boundaries_20251108.geojson";
 
   // Load Leaflet only once
   useEffect(() => {
@@ -48,8 +131,7 @@ export default function Calgary3DMap({
 
   // Initialize map once
   useEffect(() => {
-    if (!leafletReady) return;
-    if (mapRef.current) return;
+    if (!leafletReady || mapRef.current) return;
 
     const map = (window as any).L.map("map", {
       center: DEFAULT_CENTER,
@@ -61,7 +143,7 @@ export default function Calgary3DMap({
     (window as any).L.control.zoom({ position: "bottomleft" }).addTo(map);
     (window as any).L.tileLayer(TILE_URL, { attribution: TILE_ATTR }).addTo(map);
 
-    fetch(geojsonUrl)
+    fetch(GEOJSON_URL)
       .then((res) => res.json())
       .then((gj) => {
         const featureGroup = (window as any).L.featureGroup().addTo(map);
@@ -83,43 +165,7 @@ export default function Calgary3DMap({
               fillOpacity: intensityFor(val, selectedMetric),
             };
           },
-          onEachFeature: (feature: any, lyr: any) => {
-            const name =
-              NAME_KEYS.reduce(
-                (acc, k) => acc || feature.properties?.[k],
-                ""
-              ) || "Unknown";
-            const bundle = deriveMetricBundle(name);
-
-            lyr.bindPopup(
-              `<b>${bundle.name}</b><br>${selectedMetric}: ${metricValue(
-                bundle,
-                selectedMetric
-              )}`
-            );
-
-            // create label marker
-            try {
-              const center = lyr.getBounds().getCenter();
-              const label = (window as any).L.marker(center, {
-                icon: (window as any).L.divIcon({
-                  className: "neighborhood-label",
-                  html: `<div style="
-                      font-weight:600;
-                      font-size:11px;
-                      color:#f5f5f5;
-                      text-align:center;
-                      text-shadow:0 0 4px rgba(0,0,0,0.9);
-                      pointer-events:none;
-                      white-space:nowrap;">${name}</div>`,
-                }),
-                interactive: false,
-              });
-              label.addTo(labelGroup);
-            } catch {}
-          },
-        }).addTo(featureGroup);
-
+        }).addTo(map);
         layerRef.current = layer;
         labelLayerRef.current = labelGroup;
         setLoading(false);
@@ -138,7 +184,7 @@ export default function Calgary3DMap({
       .catch(() => setLoading(false));
   }, [leafletReady]);
 
-  // Update fill colors when metric changes
+  // Update polygon colors when metric changes
   useEffect(() => {
     if (!layerRef.current) return;
 
@@ -156,29 +202,25 @@ export default function Calgary3DMap({
         fillColor: colorFor(val, selectedMetric),
         fillOpacity: intensityFor(val, selectedMetric),
       });
-
-      layer.bindPopup(
-        `<b>${bundle.name}</b><br>${selectedMetric}: ${metricValue(
-          bundle,
-          selectedMetric
-        )}`
-      );
     });
   }, [selectedMetric]);
 
   return (
-    <div className="flex-1 relative">
+    <div className="relative h-screen w-full bg-zinc-950 text-zinc-100">
       {loading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950 z-10">
-          <Loader
-            className="animate-spin text-zinc-400 mb-3"
-            size={32}
-          />
-          <p className="text-zinc-400">Loading map...</p>
+        <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 z-10">
+          <Loader className="animate-spin mx-auto mb-3 text-zinc-400" size={32} />
+          <p className="text-zinc-400">Loading map…</p>
         </div>
       )}
       <div id="map" className="w-full h-full" />
-      {leafletReady && <Legend selected={selectedMetric} />}
+
+      {/* ✅ Controls */}
+      <TopRightPanel
+        selectedMetric={selectedMetric}
+        onMetricChange={setSelectedMetric}
+      />
+      <BottomRightLegend selectedMetric={selectedMetric} />
     </div>
   );
 }
