@@ -8,10 +8,33 @@ import communitiesData from "@/data/communities/urbanlytics_communities.json";
 
 const DEFAULT_CENTER = [51.0447, -114.0719];
 const DEFAULT_ZOOM = 10.5;
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png";
-const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>';
 const NAME_KEYS = ["name", "Name", "COMMUNITY", "COMM_NAME", "COMMUNITY_NAME"];
 const GEOJSON_URL = "/data/Community_District_Boundaries_20251108.geojson";
+
+// --- Basemaps (colorful options) ---
+const BASEMAPS = {
+  voyager: {
+    id: "voyager",
+    label: "Carto Voyager",
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png",
+    labelsUrl: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png",
+    attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  },
+  osm: {
+    id: "osm",
+    label: "OSM Standard",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    labelsUrl: null as string | null, // labels baked in
+    attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  },
+  positron: {
+    id: "positron",
+    label: "Carto Positron",
+    url: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
+    labelsUrl: "https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png",
+    attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  },
+} as const;
 
 const PALETTE = {
   beigeBg: "#F6F0E9",
@@ -25,18 +48,21 @@ const PALETTE = {
   oliveTint: "#DDE6D7",
 };
 
-function TopRightPanel({ selectedMetric, onMetricChange }: { selectedMetric: string; onMetricChange: (m: string) => void }) {
+function TopRightPanel({ selectedMetric, onMetricChange, basemap, onBasemapChange }: { selectedMetric: string; onMetricChange: (m: string) => void; basemap: keyof typeof BASEMAPS; onBasemapChange: (b: keyof typeof BASEMAPS) => void }) {
   const metrics = [
     { key: METRIC_TYPES.PRICING, label: "Pricing" },
     { key: METRIC_TYPES.CRIME, label: "Crime" },
     { key: METRIC_TYPES.POLLUTION, label: "Pollution" },
   ];
+
   return (
-    <div className="backdrop-blur-md border rounded-xl p-4 shadow-xl w-60" style={{ backgroundColor: `${PALETTE.beigePanel}E6`, borderColor: PALETTE.beigeBorder }}>
-      <h3 className="text-sm font-semibold mb-3" style={{ color: PALETTE.ink }}>
+    <div className="backdrop-blur-md border rounded-xl p-4 shadow-xl w-64 space-y-3" style={{ backgroundColor: `${PALETTE.beigePanel}E6`, borderColor: PALETTE.beigeBorder }}>
+      <h3 className="text-sm font-semibold" style={{ color: PALETTE.ink }}>
         Neighbourhood Analytics
       </h3>
-      <div className="grid grid-cols-2 gap-2">
+
+      {/* Metric chips */}
+      <div className="grid grid-cols-3 gap-2">
         {metrics.map((m) => {
           const isSelected = selectedMetric === m.key;
           return (
@@ -54,6 +80,31 @@ function TopRightPanel({ selectedMetric, onMetricChange }: { selectedMetric: str
           );
         })}
       </div>
+
+      {/* Basemap selector */}
+      <div className="pt-1">
+        <p className="text-[11px] font-semibold mb-1" style={{ color: PALETTE.inkSoft }}>
+          Basemap
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {(Object.keys(BASEMAPS) as Array<keyof typeof BASEMAPS>).map((key) => {
+            const isActive = basemap === key;
+            return (
+              <button
+                key={key}
+                onClick={() => onBasemapChange(key)}
+                className="text-[11px] px-2 py-1 rounded-md transition-colors"
+                style={{
+                  backgroundColor: isActive ? PALETTE.oliveLight : PALETTE.beigePanel,
+                  color: isActive ? PALETTE.ink : PALETTE.inkSoft,
+                  border: `1px solid ${isActive ? PALETTE.oliveDark : PALETTE.beigeBorder}`,
+                }}>
+                {BASEMAPS[key].label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -63,13 +114,13 @@ function BottomRightLegend({ selectedMetric }: { selectedMetric: string }) {
     selectedMetric === METRIC_TYPES.CRIME
       ? [
           { color: "#16a34a", label: "Low crime" },
-          { color: "#eab308", label: "Moderate crime" },
+          { color: "#eab308", label: "Moderate" },
           { color: "#ef4444", label: "High crime" },
         ]
       : selectedMetric === METRIC_TYPES.POLLUTION
       ? [
           { color: "#22c55e", label: "Good AQI" },
-          { color: "#f59e0b", label: "Moderate AQI" },
+          { color: "#f59e0b", label: "Moderate" },
           { color: "#ef4444", label: "Poor AQI" },
         ]
       : [
@@ -77,6 +128,7 @@ function BottomRightLegend({ selectedMetric }: { selectedMetric: string }) {
           { color: "#f59e0b", label: "Average" },
           { color: "#f43f5e", label: "Expensive" },
         ];
+
   return (
     <div className="backdrop-blur-md border rounded-xl p-4 shadow-xl w-56" style={{ backgroundColor: `${PALETTE.beigePanel}E6`, borderColor: PALETTE.beigeBorder }}>
       <h4 className="text-xs font-semibold mb-2" style={{ color: PALETTE.inkSoft }}>
@@ -98,10 +150,14 @@ const getNameFromFeature = (feature: any) => NAME_KEYS.reduce((acc, k) => acc ||
 
 export default function Calgary3DMap() {
   const [selectedMetric, setSelectedMetric] = useState(METRIC_TYPES.CRIME);
+  const [selectedBasemap, setSelectedBasemap] = useState<keyof typeof BASEMAPS>("voyager");
+
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const geoJsonLayerRef = useRef<any>(null);
   const selectedLayerRef = useRef<any>(null);
+  const baseTileRef = useRef<any>(null);
+  const labelTileRef = useRef<any>(null);
 
   const [leafletReady, setLeafletReady] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -121,16 +177,16 @@ export default function Calgary3DMap() {
     document.body.appendChild(js);
   }, []);
 
-  // Base style (no animation)
+  // Base style (choropleth fill)
   const baseStyleFor = (feature: any) => {
     const name = getNameFromFeature(feature);
     const bundle = deriveMetricBundle(name);
     const val = metricValue(bundle, selectedMetric);
     return {
-      color: "#0ea5e9",
+      color: "#ffffff", // subtle white edge so colors pop on colorful basemaps
       weight: 1.2,
       fillColor: colorFor(val, selectedMetric),
-      fillOpacity: intensityFor(val, selectedMetric),
+      fillOpacity: Math.min(0.9, 0.5 + intensityFor(val, selectedMetric) * 0.6),
     };
   };
 
@@ -139,8 +195,7 @@ export default function Calgary3DMap() {
     const path: SVGPathElement | null = layer?._path || null;
     if (!path) return;
     path.classList.add("pulse-selected");
-    // enforce stroke color for contrast
-    layer.setStyle({ color: PALETTE.oliveDark });
+    layer.setStyle({ color: PALETTE.oliveDark, weight: 2.2 });
     if (layer.bringToFront) layer.bringToFront();
   };
 
@@ -151,26 +206,53 @@ export default function Calgary3DMap() {
     layer.setStyle(baseStyleFor(layer.feature));
   };
 
+  // function to (re)apply basemap layers
+  const applyBasemap = () => {
+    if (!mapRef.current || !(window as any).L) return;
+    const L = (window as any).L;
+
+    // remove old tiles
+    if (baseTileRef.current) {
+      mapRef.current.removeLayer(baseTileRef.current);
+      baseTileRef.current = null;
+    }
+    if (labelTileRef.current) {
+      mapRef.current.removeLayer(labelTileRef.current);
+      labelTileRef.current = null;
+    }
+
+    const def = BASEMAPS[selectedBasemap];
+    baseTileRef.current = L.tileLayer(def.url, { attribution: def.attr }).addTo(mapRef.current);
+
+    // labels-only overlay (stays on top for readability)
+    if (def.labelsUrl) {
+      labelTileRef.current = L.tileLayer(def.labelsUrl, { attribution: def.attr, pane: "overlayPane" }).addTo(mapRef.current);
+    }
+  };
+
   // Init map + GeoJSON
   useEffect(() => {
     if (!leafletReady || !mapContainerRef.current || mapRef.current) return;
 
-    const map = (mapRef.current = (window as any).L.map(mapContainerRef.current, {
+    const L = (window as any).L;
+    const map = (mapRef.current = L.map(mapContainerRef.current, {
       center: DEFAULT_CENTER as any,
       zoom: DEFAULT_ZOOM,
       zoomControl: false,
     }));
 
-    (window as any).L.control.zoom({ position: "bottomleft" }).addTo(map);
-    (window as any).L.tileLayer(TILE_URL, { attribution: TILE_ATTR }).addTo(map);
+    L.control.zoom({ position: "bottomleft" }).addTo(map);
+    applyBasemap();
 
     fetch(GEOJSON_URL)
       .then((res) => res.json())
       .then((gj) => {
-        const geo = (geoJsonLayerRef.current = (window as any).L.geoJSON(gj, {
+        const geo = (geoJsonLayerRef.current = L.geoJSON(gj, {
           style: (feature: any) => baseStyleFor(feature),
           onEachFeature: (feature: any, layer: any) => {
             const name = getNameFromFeature(feature);
+
+            layer.bindTooltip(name, { sticky: true, direction: "top", offset: [0, -6] });
 
             layer.on("click", () => {
               const data = getCommunityData(name);
@@ -184,16 +266,16 @@ export default function Calgary3DMap() {
             });
 
             layer.on("mouseover", function () {
-              if (selectedLayerRef.current === this) return; // keep pulse styling
+              if (selectedLayerRef.current === this) return;
               this.setStyle({
                 weight: 2,
-                color: "#3b82f6",
-                fillOpacity: Math.min(0.9, (this.options.fillOpacity ?? 0.6) + 0.15),
+                color: "#ffffff",
+                fillOpacity: Math.min(0.95, (this.options.fillOpacity ?? 0.6) + 0.15),
               });
             });
 
             layer.on("mouseout", function () {
-              if (selectedLayerRef.current === this) return; // keep pulse styling
+              if (selectedLayerRef.current === this) return;
               this.setStyle(baseStyleFor(this.feature));
             });
           },
@@ -214,47 +296,57 @@ export default function Calgary3DMap() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leafletReady]);
 
-  // Restyle (but don’t kill the pulse) when metric changes
+  // Restyle polygons when metric changes (keep pulse)
   useEffect(() => {
     if (!geoJsonLayerRef.current) return;
 
     geoJsonLayerRef.current.eachLayer((layer: any) => {
-      if (layer === selectedLayerRef.current) return; // CSS handles pulse; we only refresh color on it below
+      if (layer === selectedLayerRef.current) return;
       layer.setStyle(baseStyleFor(layer.feature));
     });
 
     if (selectedLayerRef.current) {
-      // refresh base color for selected layer; CSS animation overlays on top
       const layer = selectedLayerRef.current;
       const base = baseStyleFor(layer.feature);
-      layer.setStyle({ ...base, color: PALETTE.oliveDark });
+      layer.setStyle({ ...base, color: PALETTE.oliveDark, weight: 2.2 });
       applySelectedClass(layer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMetric]);
 
+  // Swap basemap on selection change
+  useEffect(() => {
+    if (!mapRef.current) return;
+    applyBasemap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBasemap]);
+
   return (
     <div className="relative bg-zinc-100 text-zinc-950 flex flex-col h-[calc(100vh-56px)]">
-      {/* Global CSS for the pulse animation */}
+      {/* Global CSS */}
       <style jsx global>{`
-        /* Apply to the SVG path of the selected polygon */
+        /* Make raster tiles pop subtly without overdoing it */
+        #map .leaflet-tile {
+          filter: saturate(1.05) contrast(1.03);
+        }
+
+        /* Selected polygon pulse */
         .pulse-selected {
           animation: breatheFill 1.8s ease-in-out infinite;
-          /* The stroke color is set from JS for consistency with theme */
           filter: drop-shadow(0 0 6px rgba(63, 95, 67, 0.55));
           transition: fill-opacity 0.25s ease, stroke-width 0.25s ease;
         }
         @keyframes breatheFill {
           0% {
-            fill-opacity: 0.45;
+            fill-opacity: 0.5;
             stroke-width: 1.2;
           }
           50% {
-            fill-opacity: 0.85;
+            fill-opacity: 0.9;
             stroke-width: 3;
           }
           100% {
-            fill-opacity: 0.45;
+            fill-opacity: 0.5;
             stroke-width: 1.2;
           }
         }
@@ -269,9 +361,10 @@ export default function Calgary3DMap() {
         </div>
       )}
 
+      {/* UI chrome */}
       <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
         <div className="flex justify-end items-start pointer-events-auto p-5">
-          <TopRightPanel selectedMetric={selectedMetric} onMetricChange={setSelectedMetric} />
+          <TopRightPanel selectedMetric={selectedMetric} onMetricChange={setSelectedMetric} basemap={selectedBasemap} onBasemapChange={setSelectedBasemap} />
         </div>
         <div className="flex justify-end items-end p-4 pointer-events-auto">
           <BottomRightLegend selectedMetric={selectedMetric} />
