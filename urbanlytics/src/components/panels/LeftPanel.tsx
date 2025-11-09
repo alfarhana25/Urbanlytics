@@ -32,21 +32,93 @@ const iconMap: Record<string, React.ElementType> = {
   TrendingUp,
 };
 
-function getScoreColor(score: number) {
-  if (score >= 80) return "text-emerald-600";
-  if (score >= 60) return "text-olive-600";
-  return "text-amber-600";
+// ---- Metric semantics --------------------------------------------------------
+
+function isInverseMetric(label: string, iconName?: string) {
+  const l = (label || "").toLowerCase();
+  // Higher score = worse for these:
+  if (l.includes("crime")) return true;
+  if (l.includes("pollution") || l.includes("aqi") || l.includes("pm2.5")) return true;
+  if (l.includes("cost") || l.includes("pricing") || l.includes("price") || l.includes("rent") || l.includes("mortgage") || l.includes("tax")) return true;
+
+  // Icon hints
+  if (iconName === "Shield") return true; // your Crime cards use Shield
+  if (iconName === "Wind") return true; // you used Wind for Air Quality/Climate
+
+  return false;
 }
-function getScoreBgColor(score: number) {
-  if (score >= 80) return "bg-emerald-500/10 border-emerald-500/30";
-  if (score >= 60) return "bg-olive-500/10 border-olive-500/30";
-  return "bg-amber-500/10 border-amber-500/30";
+
+type Tier = "low" | "mid" | "high";
+function tierFor(score: number, inverse: boolean): Tier {
+  // thresholds are symmetric; only the interpretation flips
+  if (!inverse) {
+    if (score >= 80) return "high";
+    if (score >= 60) return "mid";
+    return "low";
+  } else {
+    // Inverse: high score is "bad"
+    if (score >= 80) return "high";
+    if (score >= 60) return "mid";
+    return "low";
+  }
 }
-function getScoreLabel(score: number) {
-  if (score >= 80) return "Excellent";
-  if (score >= 60) return "Good";
-  return "Fair";
+
+// text colors
+function textColor(score: number, inverse: boolean) {
+  const t = tierFor(score, inverse);
+  if (!inverse) {
+    if (t === "high") return "text-emerald-600";
+    if (t === "mid") return "text-amber-600";
+    return "text-rose-600";
+  } else {
+    // invert meaning: high = red
+    if (t === "high") return "text-rose-600";
+    if (t === "mid") return "text-amber-600";
+    return "text-emerald-600";
+  }
 }
+
+// bar/background colors
+function barBgClass(score: number, inverse: boolean) {
+  const t = tierFor(score, inverse);
+  if (!inverse) {
+    if (t === "high") return "bg-emerald-500/60";
+    if (t === "mid") return "bg-amber-400/60";
+    return "bg-rose-400/60";
+  } else {
+    if (t === "high") return "bg-rose-500/60";
+    if (t === "mid") return "bg-amber-400/60";
+    return "bg-emerald-500/60";
+  }
+}
+
+function badgeBgClass(score: number, inverse: boolean) {
+  const t = tierFor(score, inverse);
+  if (!inverse) {
+    if (t === "high") return "bg-emerald-500/10 border-emerald-500/30";
+    if (t === "mid") return "bg-amber-500/10 border-amber-500/30";
+    return "bg-rose-500/10 border-rose-500/30";
+  } else {
+    if (t === "high") return "bg-rose-500/10 border-rose-500/30";
+    if (t === "mid") return "bg-amber-500/10 border-amber-500/30";
+    return "bg-emerald-500/10 border-emerald-500/30";
+  }
+}
+
+function labelFor(score: number, inverse: boolean) {
+  if (!inverse) {
+    if (score >= 80) return "Excellent";
+    if (score >= 60) return "Good";
+    return "Fair";
+  } else {
+    // for inverse metrics, use risk-y language
+    if (score >= 80) return "High";
+    if (score >= 60) return "Moderate";
+    return "Low";
+  }
+}
+
+// -----------------------------------------------------------------------------
 
 export function AnalyticsSidebar({ data }: { data: CommunityData }) {
   const [compareOpen, setCompareOpen] = useState(false);
@@ -108,16 +180,16 @@ export function AnalyticsSidebar({ data }: { data: CommunityData }) {
             </div>
 
             <div className="flex justify-between items-center">
-              <span className={`text-3xl font-bold ${getScoreColor(overallScore)}`}>{overallScore}</span>
+              <span className={`text-3xl font-bold ${textColor(overallScore, false)}`}>{overallScore}</span>
               <span className="text-xs" style={{ color: PALETTE.inkSoft }}>
                 vs
               </span>
-              <span className={`text-3xl font-bold ${getScoreColor(compareOverall!)}`}>{compareOverall}</span>
+              <span className={`text-3xl font-bold ${textColor(compareOverall!, false)}`}>{compareOverall}</span>
             </div>
 
             <div className="flex justify-between mt-2">
-              <span className={`text-sm font-semibold ${getScoreColor(overallScore)}`}>{getScoreLabel(overallScore)}</span>
-              <span className={`text-sm font-semibold ${getScoreColor(compareOverall!)}`}>{getScoreLabel(compareOverall!)}</span>
+              <span className={`text-sm font-semibold ${textColor(overallScore, false)}`}>{labelFor(overallScore, false)}</span>
+              <span className={`text-sm font-semibold ${textColor(compareOverall!, false)}`}>{labelFor(compareOverall!, false)}</span>
             </div>
 
             <p className="text-xs" style={{ color: PALETTE.inkSoft }}>
@@ -153,7 +225,7 @@ export function AnalyticsSidebar({ data }: { data: CommunityData }) {
                     }}
                   />
                 </div>
-                <span className={`text-sm font-bold ${getScoreColor(overallScore)}`}>{getScoreLabel(overallScore)}</span>
+                <span className={`text-sm font-bold ${textColor(overallScore, false)}`}>{labelFor(overallScore, false)}</span>
               </div>
             </div>
           </Card>
@@ -166,6 +238,7 @@ export function AnalyticsSidebar({ data }: { data: CommunityData }) {
           </h3>
           {data.primaryMetrics.map((metric) => {
             const Icon = iconMap[metric.icon] || Shield;
+            const inverse = isInverseMetric(metric.label, metric.icon);
             const other = compareTarget ? findMetric(compareTarget.primaryMetrics, metric.label) : null;
 
             return (
@@ -178,26 +251,22 @@ export function AnalyticsSidebar({ data }: { data: CommunityData }) {
                 }}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center"
-                      style={{
-                        backgroundColor: PALETTE.oliveLight,
-                      }}>
-                      <Icon className="w-5 h-5 text-white" />
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border ${badgeBgClass(metric.score, inverse)}`}>
+                      <Icon className="w-5 h-5" />
                     </div>
                     <span className="font-semibold" style={{ color: PALETTE.ink }}>
                       {metric.label}
                     </span>
                   </div>
                   <div className="text-sm">
-                    <span className={`font-bold ${getScoreColor(metric.score)}`}>{metric.score}</span>
-                    {other && <span className={`ml-2 ${metric.score > other.score ? "text-emerald-600" : "text-rose-600"}`}>vs {other.score}</span>}
+                    <span className={`font-bold ${textColor(metric.score, inverse)}`}>{metric.score}</span>
+                    {other && <span className={`ml-2 ${metric.score > other.score ? (inverse ? "text-rose-600" : "text-emerald-600") : inverse ? "text-emerald-600" : "text-rose-600"}`}>vs {other.score}</span>}
                   </div>
                 </div>
 
                 <div className="flex gap-2 h-2 mb-1">
-                  <div className="h-2 rounded-full bg-[rgba(107,143,113,0.6)] transition-all" style={{ width: `${metric.score}%` }} />
-                  {other && <div className="h-2 rounded-full bg-rose-400 transition-all" style={{ width: `${other.score}%` }} />}
+                  <div className={`h-2 rounded-full transition-all ${barBgClass(metric.score, inverse)}`} style={{ width: `${metric.score}%` }} />
+                  {other && <div className={`h-2 rounded-full transition-all ${barBgClass(other.score, inverse)}`} style={{ width: `${other.score}%` }} />}
                 </div>
 
                 <p className="text-xs" style={{ color: PALETTE.inkSoft }}>
@@ -215,6 +284,7 @@ export function AnalyticsSidebar({ data }: { data: CommunityData }) {
           </h3>
           {data.secondaryMetrics.map((metric) => {
             const Icon = iconMap[metric.icon] || Home;
+            const inverse = isInverseMetric(metric.label, metric.icon);
             const other = compareTarget ? findMetric(compareTarget.secondaryMetrics, metric.label) : null;
 
             return (
@@ -233,14 +303,14 @@ export function AnalyticsSidebar({ data }: { data: CommunityData }) {
                     </h4>
                   </div>
                   <div className="text-sm">
-                    <span className={`font-bold ${getScoreColor(metric.score)}`}>{metric.score}</span>
-                    {other && <span className={`ml-2 ${metric.score > other.score ? "text-emerald-600" : "text-rose-600"}`}>vs {other.score}</span>}
+                    <span className={`font-bold ${textColor(metric.score, inverse)}`}>{metric.score}</span>
+                    {other && <span className={`ml-2 ${metric.score > other.score ? (inverse ? "text-rose-600" : "text-emerald-600") : inverse ? "text-emerald-600" : "text-rose-600"}`}>vs {other.score}</span>}
                   </div>
                 </div>
 
                 <div className="flex gap-2 h-2 mb-1">
-                  <div className="h-2 rounded-full bg-[rgba(107,143,113,0.6)] transition-all" style={{ width: `${metric.score}%` }} />
-                  {other && <div className="h-2 rounded-full bg-rose-400 transition-all" style={{ width: `${other.score}%` }} />}
+                  <div className={`h-2 rounded-full transition-all ${barBgClass(metric.score, inverse)}`} style={{ width: `${metric.score}%` }} />
+                  {other && <div className={`h-2 rounded-full transition-all ${barBgClass(other.score, inverse)}`} style={{ width: `${other.score}%` }} />}
                 </div>
 
                 <p className="text-xs" style={{ color: PALETTE.inkSoft }}>
