@@ -101,21 +101,21 @@ All datasets are aggregated for visualization and insight purposes under fair-us
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/cityscope.git
-cd cityscope
+git clone https://github.com/yourusername/urbanlytics.git
+cd urbanlytics
 
 # Install dependencies
 npm install
 
 # Set up environment variables
 cp .env.example .env.local
-# Add your Mapbox token and API keys inside .env.local
+# Add your API keys inside .env.local
 
 # Run the development server
 npm run dev
 ```
 
-Visit **http://localhost:3000** to explore CityScope.
+Visit **http://localhost:3000** to explore Urbanlytics.
 
 ---
 
@@ -143,5 +143,5 @@ Visit **http://localhost:3000** to explore CityScope.
 
 ## 💡 Vision
 
-CityScope envisions a world where **urban data is transparent, accessible, and empowering**.  
+Urbanlytics envisions a world where **urban data is transparent, accessible, and empowering**.  
 By turning complex statistics into interactive visuals, we help build **smarter, safer, and more inclusive cities** — one neighbourhood at a time.
