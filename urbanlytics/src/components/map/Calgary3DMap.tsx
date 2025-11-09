@@ -1,7 +1,13 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { Loader } from "lucide-react";
-import { METRIC_TYPES, deriveMetricBundle, metricValue, colorFor, intensityFor } from "@/lib/risk";
+import {
+  METRIC_TYPES,
+  deriveMetricBundle,
+  metricValue,
+  colorFor,
+  intensityFor,
+} from "@/lib/risk";
 import Legend from "@/components/ui/ExplainCard";
 
 const DEFAULT_CENTER = [51.0447, -114.0719];
@@ -12,15 +18,21 @@ const TILE_ATTR =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>';
 
 const NAME_KEYS = ["name", "Name", "COMMUNITY", "COMM_NAME", "COMMUNITY_NAME"];
+const LABEL_ZOOM_THRESHOLD = 14.5; // 👈 show labels after this zoom (increased for later appearance)
 
-export default function Calgary3DMap({ selectedMetric }: { selectedMetric: string }) {
+export default function Calgary3DMap({
+  selectedMetric,
+}: {
+  selectedMetric: string;
+}) {
   const mapRef = useRef<any>(null);
   const layerRef = useRef<any>(null);
+  const labelLayerRef = useRef<any>(null);
   const [leafletReady, setLeafletReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const geojsonUrl = "/data/Community_District_Boundaries_20251108.geojson";
 
-  // Load Leaflet once
+  // Load Leaflet only once
   useEffect(() => {
     const css = document.createElement("link");
     css.rel = "stylesheet";
@@ -34,25 +46,28 @@ export default function Calgary3DMap({ selectedMetric }: { selectedMetric: strin
     document.body.appendChild(js);
   }, []);
 
-  // Initialize the map only once
+  // Initialize map once
   useEffect(() => {
     if (!leafletReady) return;
     if (mapRef.current) return;
 
-    const map = window.L.map("map", {
+    const map = (window as any).L.map("map", {
       center: DEFAULT_CENTER,
       zoom: DEFAULT_ZOOM,
       zoomControl: false,
     });
     mapRef.current = map;
 
-    window.L.control.zoom({ position: "bottomleft" }).addTo(map);
-    window.L.tileLayer(TILE_URL, { attribution: TILE_ATTR }).addTo(map);
+    (window as any).L.control.zoom({ position: "bottomleft" }).addTo(map);
+    (window as any).L.tileLayer(TILE_URL, { attribution: TILE_ATTR }).addTo(map);
 
     fetch(geojsonUrl)
       .then((res) => res.json())
       .then((gj) => {
-        const layer = window.L.geoJSON(gj, {
+        const featureGroup = (window as any).L.featureGroup().addTo(map);
+        const labelGroup = (window as any).L.layerGroup().addTo(map);
+
+        const layer = (window as any).L.geoJSON(gj, {
           style: (feature: any) => {
             const name =
               NAME_KEYS.reduce(
@@ -68,29 +83,62 @@ export default function Calgary3DMap({ selectedMetric }: { selectedMetric: strin
               fillOpacity: intensityFor(val, selectedMetric),
             };
           },
-          onEachFeature: (feature: any, layer: any) => {
+          onEachFeature: (feature: any, lyr: any) => {
             const name =
               NAME_KEYS.reduce(
                 (acc, k) => acc || feature.properties?.[k],
                 ""
               ) || "Unknown";
             const bundle = deriveMetricBundle(name);
-            layer.bindPopup(
+
+            lyr.bindPopup(
               `<b>${bundle.name}</b><br>${selectedMetric}: ${metricValue(
                 bundle,
                 selectedMetric
               )}`
             );
+
+            // create label marker
+            try {
+              const center = lyr.getBounds().getCenter();
+              const label = (window as any).L.marker(center, {
+                icon: (window as any).L.divIcon({
+                  className: "neighborhood-label",
+                  html: `<div style="
+                      font-weight:600;
+                      font-size:11px;
+                      color:#f5f5f5;
+                      text-align:center;
+                      text-shadow:0 0 4px rgba(0,0,0,0.9);
+                      pointer-events:none;
+                      white-space:nowrap;">${name}</div>`,
+                }),
+                interactive: false,
+              });
+              label.addTo(labelGroup);
+            } catch {}
           },
-        }).addTo(map);
+        }).addTo(featureGroup);
 
         layerRef.current = layer;
+        labelLayerRef.current = labelGroup;
         setLoading(false);
+
+        // 👇 Hide labels until zoom threshold is met
+        labelGroup.eachLayer((l: any) => l.remove());
+        map.on("zoomend", () => {
+          const currentZoom = map.getZoom();
+          if (currentZoom >= LABEL_ZOOM_THRESHOLD) {
+            if (!map.hasLayer(labelGroup)) map.addLayer(labelGroup);
+          } else {
+            if (map.hasLayer(labelGroup)) map.removeLayer(labelGroup);
+          }
+        });
       })
       .catch(() => setLoading(false));
   }, [leafletReady]);
 
-  // Update polygon colors when metric changes (no re-init)
+  // Update fill colors when metric changes
   useEffect(() => {
     if (!layerRef.current) return;
 
@@ -109,7 +157,6 @@ export default function Calgary3DMap({ selectedMetric }: { selectedMetric: strin
         fillOpacity: intensityFor(val, selectedMetric),
       });
 
-      // update popup text
       layer.bindPopup(
         `<b>${bundle.name}</b><br>${selectedMetric}: ${metricValue(
           bundle,
@@ -122,8 +169,11 @@ export default function Calgary3DMap({ selectedMetric }: { selectedMetric: strin
   return (
     <div className="flex-1 relative">
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 z-10">
-          <Loader className="animate-spin mx-auto mb-3 text-zinc-400" size={32} />
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950 z-10">
+          <Loader
+            className="animate-spin text-zinc-400 mb-3"
+            size={32}
+          />
           <p className="text-zinc-400">Loading map...</p>
         </div>
       )}
