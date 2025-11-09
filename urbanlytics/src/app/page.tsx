@@ -1,48 +1,81 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
 
-const strataLayers = [
-  { label: "Safety", description: "Live crime scoring for every block, refreshed nightly." },
-  { label: "Affordability", description: "Monitor rent shifts, home prices, and tax deltas in context." },
-  { label: "Climate", description: "Overlay flood plains, heat islands, and air-quality corridors." },
-  { label: "Mobility", description: "Explore transit reach, bike safety, and accessibility gaps." },
+const livabilityCards = [
+  {
+    icon: "🛡️",
+    title: "Safety & Security",
+    description: "Identify low-risk zones and monitor community safety trends.",
+  },
+  {
+    icon: "🏘️",
+    title: "Affordability & Housing",
+    description: "Compare cost of living, property value, and housing stability.",
+  },
+  {
+    icon: "🌿",
+    title: "Environment & Access",
+    description: "Track air quality, green space, and walkability in real time.",
+  },
 ];
 
-const vignetteFacts = [
-  { metric: "±45%", caption: "Safety swing between the safest and riskiest neighbourhoods" },
-  { metric: "12M+", caption: "Daily records ingested from civic, mobility, and open-data feeds" },
-  { metric: "8x", caption: "Speed-up teams gain when comparing neighbourhood dashboards" },
+const trustPillars = [
+  {
+    icon: "📊",
+    title: "Open data sources",
+    note: "World Bank, OpenStreetMap, civic datasets",
+  },
+  {
+    icon: "⚙️",
+    title: "Real-time updates",
+    note: "Automatic refresh when new public data arrives",
+  },
+  {
+    icon: "💡",
+    title: "AI-driven summaries",
+    note: "Readable insights instead of raw numbers",
+  },
 ];
 
-const heatSignals = [
-  { city: "Tokyo", value: "Shinjuku rent spike", position: { x: 68, y: 36 } },
-  { city: "Nairobi", value: "Kilimani safety gains", position: { x: 55, y: 58 } },
-  { city: "São Paulo", value: "Mooca heat warning", position: { x: 40, y: 65 } },
-  { city: "Berlin", value: "Friedrichshain price dip", position: { x: 50, y: 33 } },
-  { city: "Sydney", value: "Newtown air quality", position: { x: 82, y: 70 } },
-];
-
-const globeBands = [
-  { label: "Heat risk", color: "from-[#f97316]/60 to-transparent", delay: 0 },
-  { label: "Mobility", color: "from-[#22d3ee]/50 to-transparent", delay: 1500 },
-  { label: "Housing", color: "from-[#818cf8]/50 to-transparent", delay: 3000 },
+const mapFeatures = [
+  {
+    icon: "🗺️",
+    title: "Explore the Map",
+    description: "View citywide livability patterns with intuitive colour-coded zones.",
+  },
+  {
+    icon: "🔥",
+    title: "Toggle Data Layers",
+    description: "Instantly reveal insights for crime, cost of living, or air quality.",
+  },
+  {
+    icon: "📈",
+    title: "Get Local Analytics",
+    description: "Each area opens a panel with detailed metrics, comparisons, and trends.",
+  },
 ];
 
 export default function HomePage() {
   const heroRef = useRef<HTMLDivElement>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
-  const [tiltActive, setTiltActive] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [progress, setProgress] = useState(0);
   const [revealedSections, setRevealedSections] = useState<Record<string, boolean>>({});
+  const [showConfetti, setShowConfetti] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     let frame = 0;
     const handleScroll = () => {
       if (frame) cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        setScrollY(window.scrollY || window.pageYOffset || 0);
+        const currentScroll = window.scrollY || window.pageYOffset || 0;
+        const docHeight = document.body.scrollHeight - window.innerHeight;
+        const ratio = docHeight > 0 ? Math.min(currentScroll / docHeight, 1) : 0;
+        setScrollY(currentScroll);
+        setProgress(ratio);
       });
     };
 
@@ -51,37 +84,6 @@ export default function HomePage() {
     return () => {
       if (frame) cancelAnimationFrame(frame);
       window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handlePointerMove = (event: PointerEvent) => {
-      if (!heroRef.current) return;
-      const rect = heroRef.current.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / rect.width;
-      const y = (event.clientY - rect.top) / rect.height;
-      setMousePosition({ x, y });
-    };
-
-    const handlePointerEnter = () => setTiltActive(true);
-    const handlePointerLeave = () => {
-      setTiltActive(false);
-      setMousePosition({ x: 0.5, y: 0.5 });
-    };
-
-    const node = heroRef.current;
-    if (node) {
-      node.addEventListener("pointermove", handlePointerMove);
-      node.addEventListener("pointerenter", handlePointerEnter);
-      node.addEventListener("pointerleave", handlePointerLeave);
-    }
-
-    return () => {
-      if (node) {
-        node.removeEventListener("pointermove", handlePointerMove);
-        node.removeEventListener("pointerenter", handlePointerEnter);
-        node.removeEventListener("pointerleave", handlePointerLeave);
-      }
     };
   }, []);
 
@@ -96,7 +98,7 @@ export default function HomePage() {
           }
         });
       },
-      { threshold: 0.18 }
+      { threshold: 0.2 }
     );
 
     const sections = document.querySelectorAll<HTMLElement>("[data-section-id]");
@@ -105,229 +107,369 @@ export default function HomePage() {
     return () => observer.disconnect();
   }, []);
 
-  const clampedScroll = Math.min(scrollY, 1400);
+  const clampedScroll = Math.min(scrollY, 1200);
 
-  const backdropStyle = useMemo<CSSProperties>(() => {
-    const x = mousePosition.x * 100;
-    const y = mousePosition.y * 100;
+  const heroBackground = useMemo<CSSProperties>(() => {
+    const x = 50 + Math.sin(clampedScroll / 400) * 15;
+    const y = 40 + Math.cos(clampedScroll / 450) * 12;
     return {
-      background: `
-        radial-gradient(circle at ${x}% ${y}%, rgba(56, 189, 248, 0.35), transparent 45%),
-        radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.2), transparent 60%),
-        radial-gradient(circle at 85% 25%, rgba(59, 130, 246, 0.25), transparent 60%),
-        radial-gradient(circle at 80% 80%, rgba(20, 184, 166, 0.15), transparent 55%),
-        radial-gradient(circle at 15% 85%, rgba(129, 140, 248, 0.18), transparent 55%),
-        #010617
-      `,
-      transition: tiltActive ? "background 0.12s ease-out" : "background 0.6s ease-out",
-    };
-  }, [mousePosition, tiltActive]);
-
-  const heroGlowStyleTop = useMemo<CSSProperties>(() => {
-    return {
-      transform: `translate3d(0, ${clampedScroll * -0.22}px, 0)`,
-      transition: "transform 0.6s ease-out",
+      background: `radial-gradient(circle at ${x}% ${y}%, rgba(255, 255, 255, 0.55), transparent 55%),
+        radial-gradient(circle at 25% 35%, rgba(226, 210, 188, 0.35), transparent 70%),
+        radial-gradient(circle at 78% 28%, rgba(210, 191, 161, 0.28), transparent 65%),
+        #f6f0e9`,
     };
   }, [clampedScroll]);
-
-  const heroGlowStyleBottom = useMemo<CSSProperties>(() => {
-    return {
-      transform: `translate3d(0, ${clampedScroll * 0.18}px, 0)`,
-      transition: "transform 0.6s ease-out",
-    };
-  }, [clampedScroll]);
-
-  const parallaxTransform = useMemo<CSSProperties>(() => {
-    const rotateX = (mousePosition.y - 0.5) * 10 * (tiltActive ? 1 : 0);
-    const rotateY = (mousePosition.x - 0.5) * -16 * (tiltActive ? 1 : 0);
-    const translateX = (mousePosition.x - 0.5) * 40;
-    const translateY = (mousePosition.y - 0.5) * 36 + clampedScroll * -0.12;
-    return {
-      transform: `translate3d(${translateX}px, ${translateY}px, 0) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
-      transition: tiltActive ? "transform 0.1s ease-out" : "transform 0.6s ease-out",
-      willChange: "transform",
-    };
-  }, [mousePosition, tiltActive, clampedScroll]);
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <CustomKeyframes />
+    <main className="min-h-screen bg-[#f6f0e9] text-[#2e261b]">
+      <section
+        ref={heroRef}
+        className="relative overflow-hidden"
+      >
+        <div className="absolute inset-0" style={heroBackground} />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-white/70 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-white/80 to-transparent" />
 
-      <section ref={heroRef} className="relative isolate overflow-hidden" style={{ minHeight: "110vh" }}>
-        <div className="absolute inset-0 -z-20" style={backdropStyle} />
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(8,47,73,0.45)_0%,transparent_68%)] mix-blend-screen" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[55vh] bg-gradient-to-b from-sky-500/25 via-transparent to-transparent blur-3xl" style={heroGlowStyleTop} />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[42vh] bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent" style={heroGlowStyleBottom} />
-
-        <div className="mx-auto flex w-full max-w-7xl flex-col items-center px-6 pt-32 pb-24 sm:px-10">
-          <div className="relative w-full max-w-5xl" style={parallaxTransform}>
-            <div className="absolute inset-0 transform-gpu">
-              <HeatmapGlobe bands={globeBands} signals={heatSignals} />
-              <OrbitalRing delay={0} size="large" />
-              <OrbitalRing delay={2400} size="medium" />
-              <OrbitalRing delay={4800} size="small" />
+        <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-6 py-20 sm:px-10">
+          <div className="relative w-full max-w-4xl space-y-12 overflow-hidden rounded-[3.5rem] border border-[#dacbb4] bg-white/80 px-16 py-32 text-center shadow-[0_80px_220px_-80px_rgba(122,101,69,0.55)] backdrop-blur">
+            <div className="pointer-events-none absolute inset-0 rounded-[3.5rem] border border-white/40" />
+            <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-[#e5d6c2] to-transparent" />
+            <div className="relative space-y-8">
+              <span className="inline-flex items-center justify-center rounded-full border border-[#ddccb6] px-6 py-2 text-xs font-semibold uppercase tracking-[0.6em] text-[#8d7253]">
+                Neighbourhood Analytics Platform
+              </span>
+              <h1 className="text-[clamp(4.5rem,10vw,9rem)] font-serif leading-none text-[#1f1b16]">
+                Urbanlytics
+              </h1>
+              <p className="mx-auto max-w-3xl text-lg text-[#4d4134] sm:text-xl">
+                See your city come alive through data.
+                <br className="hidden sm:block" /> Urbanlytics visualizes how neighbourhoods compare across safety, housing, environment, and access — all in one interactive map.
+              </p>
+              <div className="text-xs uppercase tracking-[0.45em] text-[#9d8463]">↓ Learn more</div>
             </div>
-            <div className="relative space-y-10 rounded-[2.75rem] border border-white/10 bg-white/5 p-12 shadow-[0_50px_120px_-40px_rgba(56,189,248,0.45)] backdrop-blur-xl">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center rounded-full bg-white/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.45em] text-cyan-200">Urbanlytics</span>
-                <span className="text-[10px] uppercase tracking-[0.35em] text-white/70">Scroll to analyse the city</span>
-              </div>
-              <div className="space-y-6">
-                <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">Neighbourhood intelligence for every city on Earth.</h1>
-                <p className="max-w-3xl text-base text-slate-200 sm:text-lg">Urbanlytics reveals how safety, pricing, and environmental quality shift block by block so you can choose, invest, and plan with confidence.</p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="mt-14 grid w-full max-w-4xl gap-6 sm:grid-cols-3"
-            style={{
-              transform: `translate3d(0, ${clampedScroll * -0.05}px, 0)`,
-              transition: "transform 0.6s ease-out",
-            }}>
-            {vignetteFacts.map((fact) => (
-              <div key={fact.metric} className="rounded-3xl border border-white/5 bg-white/5 p-6 backdrop-blur">
-                <p className="text-3xl font-semibold text-cyan-200">{fact.metric}</p>
-                <p className="mt-2 text-[10px] uppercase tracking-[0.35em] text-white/60">City signal</p>
-                <p className="mt-3 text-sm text-slate-200/90">{fact.caption}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
 
-      <ScrollRevealSection id="search" revealed={revealedSections.search} scrollY={scrollY} parallaxStrength={0.08} className="relative overflow-hidden border-t border-white/5 bg-gradient-to-b from-[#020617] via-[#031121] to-[#020617] py-28">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_70%_20%,rgba(59,130,246,0.22),transparent_55%)]" />
-        <div className="mx-auto flex max-w-6xl flex-col gap-16 px-6 sm:px-10 lg:flex-row lg:items-center">
-          <div className="flex-1 space-y-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.4em] text-cyan-200">Start exploring</p>
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Search any city and compare its neighbourhoods side by side.</h2>
-            <p className="text-base text-slate-200 sm:text-lg">Urbanlytics stitches together property records, police feeds, and environmental monitors so you can instantly benchmark neighbourhoods across safety, price, and livability.</p>
-            <div className="flex flex-wrap items-center gap-4">
-              <a
-                href="/base"
-                className="rounded-full bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-400/30 transition duration-200 hover:bg-cyan-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200">
-                Start searching
-              </a>
-              <span className="text-xs uppercase tracking-[0.4em] text-white/60">No download · live datasets</span>
-            </div>
-          </div>
-          <div className="flex-1">
-            <div className="relative mx-auto aspect-square max-w-[420px]">
-              <HeatmapGlobe bands={globeBands} signals={heatSignals} variant="emphasis" />
-            </div>
-          </div>
-        </div>
-      </ScrollRevealSection>
-
-      <ScrollRevealSection id="compare" revealed={revealedSections.compare} scrollY={scrollY} parallaxStrength={0.06} className="relative overflow-hidden border-y border-white/5 bg-gradient-to-br from-slate-950 via-slate-900/90 to-slate-950 py-24">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_30%_20%,rgba(14,165,233,0.18),transparent_65%)]" />
-        <div className="mx-auto flex max-w-6xl flex-col gap-16 px-6 sm:px-10 lg:flex-row lg:items-center">
-          <div className="lg:w-[42%]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.4em] text-cyan-200">Neighbourhood stack</p>
-            <h2 className="mt-6 text-3xl font-semibold tracking-tight sm:text-4xl">Overlay the forces shaping each neighbourhood in minutes.</h2>
-            <p className="mt-4 text-base text-slate-200 sm:text-lg">Urbanlytics renders every district as a responsive heat layer so planners, analysts, and newcomers can see where to live, invest, or intervene next.</p>
-          </div>
-          <div className="flex flex-1 flex-col gap-4">
-            {strataLayers.map((item, index) => (
-              <div key={item.label} className="group relative overflow-hidden rounded-3xl border border-white/5 bg-white/5 p-6 transition duration-300 hover:-translate-y-1 hover:border-cyan-300/40 hover:bg-white/10">
-                <div className="absolute inset-0 -z-10 bg-gradient-to-r from-cyan-500/0 via-cyan-400/10 to-cyan-500/0 opacity-0 transition duration-300 group-hover:opacity-100" />
-                <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.35em] text-white/50">
-                  <span>{item.label}</span>
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                </div>
-                <p className="mt-3 text-sm font-semibold text-white">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </ScrollRevealSection>
-
-      <ScrollRevealSection id="crime" revealed={revealedSections.crime} scrollY={scrollY} parallaxStrength={0.1} className="relative isolate overflow-hidden py-28">
-        <div className="absolute inset-0 -z-10 bg-[conic-gradient(from_120deg_at_50%_50%,rgba(14,116,144,0.06),rgba(56,189,248,0.25),rgba(14,116,144,0.06))]" />
-        <div className="mx-auto flex max-w-6xl flex-col gap-16 px-6 sm:px-10 lg:flex-row lg:items-center">
-          <div className="flex-1 space-y-6">
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Crime lenses spotlight risk street by street.</h2>
-            <p className="text-base text-slate-200 sm:text-lg">Track incident density, trending offences, and police response times to understand where intervention or community programs make the biggest impact.</p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {["Live heat maps of reported incidents", "Safe-route scoring for commuters", "Predictive hotspots based on history", "Shareable briefings for stakeholders"].map((item) => (
-                <div key={item} className="rounded-2xl border border-white/5 bg-white/5 p-4 text-sm text-slate-100 transition hover:border-cyan-200/40 hover:bg-white/10">
-                  {item}
+      <ScrollRevealSection
+        id="what-we-do"
+        revealed={revealedSections["what-we-do"]}
+        scrollY={scrollY}
+        parallaxStrength={0.08}
+        className="relative border-t border-[#e5d6c2] bg-[#fdf8f1]"
+      >
+        <div className="flex min-h-[90vh] flex-col gap-16 px-[min(12vw,7rem)] py-24">
+          <ReadingShowcase
+            active={Boolean(revealedSections["what-we-do"])}
+            lines={["One interactive map", "that brings every", "layer of your city", "together"]}
+            subtext="Explore every neighbourhood through real-time urban data. Toggle between layers like crime, affordability, pollution, and transit — and watch the city change before your eyes."
+          />
+          <div className="relative -mx-[min(12vw,7rem)]">
+            <div
+              className="flex gap-6 overflow-x-auto px-[min(12vw,7rem)] py-4 scrollbar-hide"
+              onWheel={(event) => {
+                const container = event.currentTarget;
+                container.scrollLeft += event.deltaY * 2;
+              }}
+            >
+              {mapFeatures.map((feature) => (
+                <div
+                  key={feature.title}
+                  className="group relative min-w-[62vw] max-w-[62vw] rounded-[3rem] border border-[#e5d6c2] bg-white/85 p-14 shadow-[0_25px_80px_-60px_rgba(120,97,60,0.25)] transition duration-300 hover:-translate-y-1 hover:border-[#c9b192] hover:shadow-[0_35px_100px_-60px_rgba(120,97,60,0.35)] sm:min-w-[48vw] sm:max-w-[48vw] lg:min-w-[36vw] lg:max-w-[36vw]"
+                >
+                  <FeatureBackground type={feature.title} />
+                  <div className="relative flex min-h-[22rem] flex-col justify-between">
+                    <div>
+                      <div className="text-4xl">{feature.icon}</div>
+                      <h3 className="mt-8 text-3xl font-semibold text-[#2e261b]">{feature.title}</h3>
+                      <p className="mt-4 text-lg text-[#4d4134]/85">{feature.description}</p>
+                    </div>
+                    <div className="mt-10 h-px w-full origin-left scale-x-0 bg-[#c9b192] transition duration-300 group-hover:scale-x-100" />
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-          <div className="flex-1">
-            <div className="relative h-[420px] overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-[#f97316]/10 via-[#020817] to-[#020817] shadow-[0_45px_120px_-50px_rgba(249,115,22,0.6)]">
-              <AuroraSwirl variant="crime" />
-            </div>
-          </div>
         </div>
       </ScrollRevealSection>
 
       <ScrollRevealSection
-        id="pricing"
-        revealed={revealedSections.pricing}
+        id="livability"
+        revealed={revealedSections.livability}
         scrollY={scrollY}
-        parallaxStrength={0.12}
-        className="relative isolate overflow-hidden border-t border-white/5 bg-gradient-to-br from-slate-950 via-slate-900/80 to-slate-950 py-28">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_30%,rgba(129,140,248,0.2),transparent_60%)]" />
-        <div className="mx-auto flex max-w-6xl flex-col gap-16 px-6 sm:px-10 lg:flex-row lg:items-center">
-          <div className="flex-1 space-y-6">
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pricing layers expose affordability in real time.</h2>
-            <p className="text-base text-slate-200 sm:text-lg">Compare rent and sale trends, gentrification pressure, and tax burdens to see where budgets stretch or shrink throughout a city.</p>
-            <div className="space-y-3 text-sm text-slate-200/80">
-              <div className="flex items-center gap-3">
-                <span className="h-2 w-2 rounded-full bg-violet-300" /> Mix MLS, rental, and short-term stay feeds in one panel.
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="h-2 w-2 rounded-full bg-cyan-300" /> Project affordability under different income scenarios.
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="h-2 w-2 rounded-full bg-lime-300" /> Export comparisons for investor or policy briefings.
-              </div>
-            </div>
-          </div>
-          <div className="flex-1">
-            <div className="relative h-[420px] overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-slate-900/40 shadow-[0_45px_120px_-50px_rgba(129,140,248,0.6)]">
-              <AuroraSwirl variant="pricing" />
+        parallaxStrength={0.08}
+        className="bg-white py-28"
+      >
+        <div className="flex min-h-[90vh] flex-col gap-16 px-[min(12vw,7rem)]">
+          <ReadingShowcase
+            active={Boolean(revealedSections.livability)}
+            lines={["Discover", "what defines", "your community."]}
+            subtext="Urbanlytics breaks down livability into measurable categories that help residents, planners, and researchers understand their neighbourhoods better."
+          />
+          <div className="relative -mx-[min(12vw,7rem)] mb-24">
+            <div
+              className="flex gap-6 overflow-x-auto px-[min(12vw,7rem)] py-4 scrollbar-hide"
+              onWheel={(event) => {
+                const container = event.currentTarget;
+                container.scrollLeft += event.deltaY * 2;
+              }}
+            >
+              {livabilityCards.map((card) => (
+                <div
+                  key={card.title}
+                  className="group relative min-w-[60vw] max-w-[60vw] rounded-[3rem] border border-[#e5d6c2] bg-[#fbf3e8] p-12 shadow-[0_25px_80px_-60px_rgba(120,97,60,0.25)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_35px_100px_-60px_rgba(120,97,60,0.35)] sm:min-w-[48vw] sm:max-w-[48vw] lg:min-w-[34vw] lg:max-w-[34vw]"
+                >
+                  <div className="pointer-events-none absolute inset-0 rounded-[3rem] bg-[radial-gradient(circle_at_40%_20%,rgba(216,196,167,0.35),transparent_70%)]" />
+                  <div className="relative flex min-h-[21rem] flex-col justify-between">
+                    <div>
+                      <div className="text-3xl">{card.icon}</div>
+                      <h3 className="mt-8 text-3xl font-semibold text-[#2e261b]">{card.title}</h3>
+                      <p className="mt-4 text-lg text-[#4d4134]/80">{card.description}</p>
+                    </div>
+                    <div className="mt-8 h-px w-full origin-left scale-x-0 bg-[#c9b192] transition duration-300 group-hover:scale-x-100" />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </ScrollRevealSection>
 
       <ScrollRevealSection
-        id="pollution"
-        revealed={revealedSections.pollution}
+        id="preview"
+        revealed={revealedSections.preview}
         scrollY={scrollY}
         parallaxStrength={0.14}
-        className="relative isolate overflow-hidden border-t border-white/5 bg-gradient-to-br from-[#031221] via-[#041a2f] to-[#01070e] py-28">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_70%_40%,rgba(45,212,191,0.18),transparent_60%)]" />
-        <div className="mx-auto flex max-w-6xl flex-col gap-16 px-6 sm:px-10 lg:flex-row lg:items-center">
-          <div className="flex-1 space-y-6">
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pollution monitors decode air and climate stress.</h2>
-            <p className="text-base text-slate-200 sm:text-lg">Blend particulate sensors, emissions inventories, and green canopy coverage to pinpoint which neighbourhoods breathe easier.</p>
-            <div className="space-y-3 text-sm text-slate-200/80">
-              {["Track AQI, NO₂, and PM₂.₅ in near real time", "Overlay flood, heat, and wildfire risk layers", "Surface mitigation opportunities street by street"].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <span className="h-2 w-2 rounded-full bg-emerald-300" />
-                  {item}
+        className="bg-[#fbf3e8] py-28"
+      >
+        <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 text-center">
+          <div className="space-y-4">
+            <h2 className="text-3xl font-semibold text-[#2e261b] sm:text-4xl">See your city’s story unfold.</h2>
+            <p className="text-base text-[#564b3c]/80 sm:text-lg">
+              Watch how Urbanlytics turns city maps into living dashboards — showing safety, affordability, and environmental health at a glance.
+            </p>
+          </div>
+          <div className="relative rounded-[3rem] border border-[#e5d6c2] bg-white/90 p-10 shadow-[0_35px_90px_-60px_rgba(120,97,60,0.3)]">
+            <div className="grid gap-6 sm:grid-cols-3">
+              {[
+                { label: "Crime", gradient: "from-[#d67560] to-[#f3c7b8]" },
+                { label: "Air Quality", gradient: "from-[#88af7d] to-[#cfe3c8]" },
+                { label: "Transit", gradient: "from-[#8197d8] to-[#d7def7]" },
+              ].map((layer) => (
+                <div key={layer.label} className={`rounded-[2rem] border border-white/60 bg-gradient-to-br ${layer.gradient} p-6 text-left shadow-inner transition duration-500 animate-[pulse_8s_ease-in-out_infinite]`}> 
+                  <p className="text-xs uppercase tracking-[0.4em] text-white/70">Layer</p>
+                  <h3 className="mt-4 text-lg font-semibold text-white">{layer.label}</h3>
+                  <p className="mt-2 text-sm text-white/80">Sample heat map preview</p>
                 </div>
               ))}
             </div>
-          </div>
-          <div className="flex-1">
-            <div className="relative h-[420px] overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-slate-900/40 shadow-[0_45px_120px_-50px_rgba(45,212,191,0.6)]">
-              <AuroraSwirl variant="pollution" />
+            <div className="mt-10 grid gap-6 sm:grid-cols-2">
+              <div className="rounded-[2rem] border border-[#e5d6c2] bg-white/90 p-6 text-left shadow">
+                <p className="text-xs uppercase tracking-[0.4em] text-[#9d8463]">Neighbourhood panel</p>
+                <p className="mt-3 text-sm text-[#3c3227]">
+                  Dynamic cards slide in with safety, affordability, and environment metrics tailored to the block you select.
+                </p>
+              </div>
+              <div className="rounded-[2rem] border border-[#e5d6c2] bg-white/90 p-6 text-left shadow">
+                <p className="text-xs uppercase tracking-[0.4em] text-[#9d8463]">Comparison view</p>
+                <p className="mt-3 text-sm text-[#3c3227]">
+                  Pick two neighbourhoods to see score animations, category breakdowns, and narrative summaries in one panel.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </ScrollRevealSection>
+
+      <ScrollRevealSection
+        id="cta"
+        revealed={revealedSections.cta}
+        scrollY={scrollY}
+        parallaxStrength={0.18}
+        className="relative border-t border-[#e5d6c2] bg-white py-36"
+      >
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white via-[#fdf3e7] to-white" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_20%,rgba(233,216,189,0.45),transparent_70%)]" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_80%_30%,rgba(207,188,161,0.35),transparent_75%)]" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-[-20%] -z-10 h-[55vh] bg-[url('/citylines.svg')] bg-contain bg-bottom bg-no-repeat opacity-40 animate-[slowPan_20s_linear_infinite]" />
+
+        {showConfetti ? <ConfettiOverlay onDone={() => setShowConfetti(false)} /> : null}
+
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-10 px-6 text-center">
+          <div className="space-y-6">
+            <h3 className="text-[clamp(3.2rem,7vw,5rem)] font-serif leading-tight text-[#2e261b]">
+              Ready to explore your city?
+            </h3>
+            <p className="mx-auto max-w-3xl text-lg text-[#574a39]/85 sm:text-xl">
+              Dive into the Urbanlytics Explorer to uncover insights, compare neighbourhoods, and visualize your city like never before.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-6 text-xs uppercase tracking-[0.4em] text-[#8d7253]/70">
+            <span className="rounded-full border border-[#e5d6c2] px-4 py-2">Safety layers</span>
+            <span className="rounded-full border border-[#e5d6c2] px-4 py-2">Affordability insights</span>
+            <span className="rounded-full border border-[#e5d6c2] px-4 py-2">Environmental health</span>
+          </div>
+          <a
+            href="/explore"
+            className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-[#2e261b] px-16 py-5 text-xl font-semibold text-[#f6f0e9] shadow-[0_45px_120px_-70px_rgba(46,38,27,0.75)] transition duration-300 hover:bg-[#46392d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8d7253]"
+            onClick={(event) => {
+              event.preventDefault();
+              if (showConfetti) return;
+              setShowConfetti(true);
+              setTimeout(() => {
+                router.push("/explore");
+              }, 700);
+            }}
+          >
+            <span className="absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100" style={{ background: "linear-gradient(120deg, rgba(233,216,189,0.4), transparent 60%)" }} />
+            <span className="relative flex items-center gap-4 text-lg">
+              <span className="text-2xl">🗺️</span>
+              Enter the Explorer
+            </span>
+            <span className="absolute -inset-3 opacity-0 transition duration-300 group-hover:opacity-100" style={{ boxShadow: "0 0 80px rgba(46,38,27,0.35)" }} />
+          </a>
+          <p className="text-xs uppercase tracking-[0.45em] text-[#b49d80]/70">
+            Built for residents · planners · researchers
+          </p>
+        </div>
+      </ScrollRevealSection>
+
+      <div className="fixed bottom-6 left-1/2 z-50 hidden w-full max-w-4xl -translate-x-1/2 px-6 sm:flex">
+        <div className="h-1 w-full overflow-hidden rounded-full bg-[#e5d6c2]">
+          <div className="h-full bg-[#8d7253] transition-[width] duration-300" style={{ width: `${Math.round(progress * 100)}%` }} />
+        </div>
+      </div>
     </main>
   );
 }
 
-function ScrollRevealSection({ id, revealed, className, children, scrollY, parallaxStrength }: { id: string; revealed?: boolean; className?: string; children: ReactNode; scrollY: number; parallaxStrength?: number }) {
+function ReadingShowcase({
+  lines,
+  subtext,
+  active,
+}: {
+  lines: string[];
+  subtext: string;
+  active: boolean;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const lineRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!containerRef.current) return;
+      const midpoint = window.innerHeight / 2;
+      let nextActive = 0;
+      lineRefs.current.forEach((el, index) => {
+        if (!el) return;
+        const { top, bottom } = el.getBoundingClientRect();
+        if (top <= midpoint && bottom >= midpoint) {
+          nextActive = index;
+        }
+      });
+      setActiveIndex(nextActive);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="space-y-8 text-left">
+      {lines.map((line, index) => (
+        <div
+          key={line}
+          ref={(el) => {
+            lineRefs.current[index] = el;
+          }}
+          className="overflow-hidden"
+        >
+          <span
+            className={`block text-[clamp(3.8rem,8.2vw,9rem)] font-serif uppercase leading-[1.05] tracking-[-0.015em] transition duration-700 ${
+              active && activeIndex === index ? "text-[#1f1b16]" : "text-[#c3b39f]"
+            }`}
+          >
+            {line}
+          </span>
+        </div>
+      ))}
+      <p
+        className={`max-w-3xl text-[clamp(1.1rem,2vw,1.5rem)] leading-relaxed transition duration-700 ${
+          active && activeIndex >= lines.length - 1 ? "text-[#4d4134]" : "text-[#b9a791]"
+        }`}
+      >
+        {subtext}
+      </p>
+    </div>
+  );
+}
+
+function FeatureBackground({ type }: { type: string }) {
+  let gradient = "linear-gradient(135deg, rgba(217,203,182,0.15), transparent)";
+  if (type.includes("Map")) {
+    gradient = "radial-gradient(circle at 30% 30%, rgba(173, 206, 235, 0.25), transparent 65%)";
+  } else if (type.includes("Toggle")) {
+    gradient = "radial-gradient(circle at 70% 20%, rgba(255, 174, 120, 0.25), transparent 70%)";
+  } else if (type.includes("Analytics")) {
+    gradient = "radial-gradient(circle at 50% 80%, rgba(209, 189, 231, 0.25), transparent 70%)";
+  }
+
+  return <div className="pointer-events-none absolute inset-0 rounded-[3rem]" style={{ background: gradient }} />;
+}
+
+function ConfettiOverlay({ onDone }: { onDone: () => void }) {
+  useEffect(() => {
+    const timeout = setTimeout(onDone, 1200);
+    return () => clearTimeout(timeout);
+  }, [onDone]);
+
+  const pieces = Array.from({ length: 80 }, (_, index) => index);
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+      {pieces.map((piece) => {
+        const left = Math.random() * 100;
+        const animationDelay = Math.random() * 0.5;
+        const duration = 1.2 + Math.random() * 0.6;
+        const colors = ["#c59f74", "#f4ead6", "#8d7253", "#dac6a4"];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = Math.random() * 8 + 6;
+
+        return (
+          <span
+            key={piece}
+            className="absolute top-0 block rounded-sm"
+            style={{
+              left: `${left}%`,
+              width: `${size}px`,
+              height: `${size * 0.6}px`,
+              backgroundColor: color,
+              animation: `fall ${duration}s cubic-bezier(0.4, 0, 0.2, 1) ${animationDelay}s forwards`,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function ScrollRevealSection({
+  id,
+  revealed,
+  className,
+  children,
+  scrollY,
+  parallaxStrength,
+}: {
+  id: string;
+  revealed?: boolean;
+  className?: string;
+  children: ReactNode;
+  scrollY: number;
+  parallaxStrength?: number;
+}) {
   const parallaxOffset = -(scrollY * (parallaxStrength ?? 0));
   const style: CSSProperties = {
     transform: `translate3d(0, ${parallaxOffset + (revealed ? 0 : 48)}px, 0)`,
@@ -340,162 +482,5 @@ function ScrollRevealSection({ id, revealed, className, children, scrollY, paral
     <section id={id} data-section-id={id} className={className ?? ""} style={style}>
       {children}
     </section>
-  );
-}
-
-function OrbitalRing({ delay, size }: { delay: number; size: "large" | "medium" | "small" }) {
-  const sizeClasses: Record<typeof size, string> = {
-    large: "h-[520px] w-[520px]",
-    medium: "h-[420px] w-[420px]",
-    small: "h-[320px] w-[320px]",
-  };
-
-  return (
-    <div
-      className="absolute left-1/2 top-1/2 rounded-full border border-cyan-400/20"
-      style={{
-        animation: "spinOrbit 18s linear infinite",
-        animationDelay: `${delay}ms`,
-        transform: "translate(-50%, -50%)",
-      }}>
-      <div
-        className={`${sizeClasses[size]} rounded-full`}
-        style={{
-          background: "radial-gradient(circle at 50% 50%, rgba(56,189,248,0.28), rgba(8,47,73,0.12) 55%, transparent 72%)",
-        }}
-      />
-    </div>
-  );
-}
-
-function HeatmapGlobe({ bands, signals, variant = "hero" }: { bands: typeof globeBands; signals: typeof heatSignals; variant?: "hero" | "emphasis" }) {
-  const sizeClass = variant === "hero" ? "h-[420px] w-[420px]" : "h-[380px] w-[380px]";
-  const blur = variant === "hero" ? "blur-3xl" : "blur-2xl";
-
-  return (
-    <div className={`relative left-1/2 top-1/2 ${sizeClass}`} style={{ transform: "translate(-50%, -50%)" }}>
-      <div className={`absolute inset-0 rounded-full bg-cyan-500/10 ${blur}`} />
-      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(56,189,248,0.45),rgba(8,47,73,0.6)_58%,rgba(2,6,23,0.9)_85%)]" />
-      <div className="absolute inset-[8%] rounded-full border border-cyan-200/20" style={{ animation: "globeSpin 36s linear infinite" }} />
-
-      {bands.map((band, index) => (
-        <div
-          key={band.label}
-          className="absolute inset-[12%] rounded-full border border-transparent"
-          style={{
-            animation: `bandSweep 18s linear infinite`,
-            animationDelay: `${band.delay}ms`,
-            maskImage: "radial-gradient(circle at 50% 50%, transparent 45%, black 60%, transparent 75%)",
-          }}>
-          <div className={`absolute inset-0 rounded-full bg-gradient-to-tr ${band.color} opacity-70`} style={{ filter: "blur(12px)" }} />
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-semibold uppercase tracking-[0.4em] text-white/50">{band.label}</span>
-        </div>
-      ))}
-
-      {signals.map((signal, index) => (
-        <div
-          key={signal.city}
-          style={{
-            left: `${signal.position.x}%`,
-            top: `${signal.position.y}%`,
-            animation: `heatPulse 3.6s ease-in-out ${index * 250}ms infinite`,
-          }}
-          className="absolute -translate-x-1/2 -translate-y-1/2">
-          <span className="relative block h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.7)]">
-            <span className="pointer-events-none absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/20" />
-          </span>
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/10 px-3 py-1 text-[10px] backdrop-blur">
-            <span className="font-semibold text-white">{signal.city}</span>
-            <span className="ml-2 text-white/70">{signal.value}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function AuroraSwirl({ variant = "default" }: { variant?: "default" | "crime" | "pricing" | "pollution" }) {
-  const palette = {
-    default: {
-      radial: "bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.6),transparent_55%)]",
-      conicA: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(125,211,252,0.6),rgba(14,165,233,0.12),rgba(59,130,246,0.45),rgba(56,189,248,0.6))]",
-      conicB: "bg-[conic-gradient(from_90deg_at_20%_40%,rgba(56,189,248,0.4),transparent,rgba(20,184,166,0.35),transparent,rgba(59,130,246,0.4))]",
-      accent: "text-cyan-100/80",
-      title: "Forecast how safety, affordability, and climate risk shift across priority corridors this quarter.",
-    },
-    crime: {
-      radial: "bg-[radial-gradient(circle_at_30%_20%,rgba(249,115,22,0.55),transparent_55%)]",
-      conicA: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(249,115,22,0.55),rgba(250,204,21,0.1),rgba(248,113,113,0.5),rgba(249,115,22,0.55))]",
-      conicB: "bg-[conic-gradient(from_90deg_at_20%_40%,rgba(248,113,113,0.45),transparent,rgba(250,204,21,0.35),transparent,rgba(249,115,22,0.45))]",
-      accent: "text-orange-100/80",
-      title: "Review weekly offence trends and priority response corridors at a glance.",
-    },
-    pricing: {
-      radial: "bg-[radial-gradient(circle_at_30%_20%,rgba(129,140,248,0.55),transparent_55%)]",
-      conicA: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(129,140,248,0.55),rgba(59,130,246,0.12),rgba(167,139,250,0.5),rgba(129,140,248,0.55))]",
-      conicB: "bg-[conic-gradient(from_90deg_at_20%_40%,rgba(167,139,250,0.45),transparent,rgba(56,189,248,0.35),transparent,rgba(129,140,248,0.45))]",
-      accent: "text-indigo-100/80",
-      title: "Visualize asking prices, rent, and affordability corridors without switching tools.",
-    },
-    pollution: {
-      radial: "bg-[radial-gradient(circle_at_30%_20%,rgba(16,185,129,0.55),transparent_55%)]",
-      conicA: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(16,185,129,0.5),rgba(45,212,191,0.12),rgba(56,189,248,0.35),rgba(16,185,129,0.5))]",
-      conicB: "bg-[conic-gradient(from_90deg_at_20%_40%,rgba(45,212,191,0.45),transparent,rgba(34,197,94,0.35),transparent,rgba(16,185,129,0.45))]",
-      accent: "text-emerald-100/80",
-      title: "Track AQI swings, canopy coverage, and flood alerts for every block.",
-    },
-  } as const;
-
-  const { radial, conicA, conicB, accent, title } = palette[variant];
-
-  return (
-    <div className="relative h-full w-full overflow-hidden rounded-[2.2rem]">
-      <div className={`absolute inset-0 ${radial} blur-3xl opacity-60`} />
-      <div className={`absolute inset-0 animate-[aurora_14s_ease-in-out_infinite] ${conicA} opacity-80 mix-blend-screen`} />
-      <div className={`absolute inset-0 animate-[auroraReverse_16s_ease-in-out_infinite] ${conicB} opacity-70`} />
-      <div className="absolute inset-x-10 bottom-10 rounded-3xl border border-white/15 bg-black/50 p-6 text-sm text-slate-200/80 backdrop-blur">
-        <p className={`text-[10px] uppercase tracking-[0.35em] ${accent}`}>Insight preview</p>
-        <p className="mt-2 text-base text-white">{title}</p>
-      </div>
-    </div>
-  );
-}
-
-function CustomKeyframes() {
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: `
-          @keyframes spinOrbit {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            50% { transform: translate(-50%, -50%) rotate(180deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-          }
-          @keyframes globeSpin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-          @keyframes bandSweep {
-            0% { transform: rotate(0deg) scale(1); opacity: 0.5; }
-            50% { transform: rotate(180deg) scale(1.02); opacity: 0.9; }
-            100% { transform: rotate(360deg) scale(1); opacity: 0.5; }
-          }
-          @keyframes heatPulse {
-            0%, 100% { transform: scale(0.95); opacity: 0.75; }
-            50% { transform: scale(1.18); opacity: 1; }
-          }
-          @keyframes aurora {
-            0% { transform: rotate(0deg) scale(1); opacity: 0.85; }
-            50% { transform: rotate(35deg) scale(1.05); opacity: 0.65; }
-            100% { transform: rotate(0deg) scale(1); opacity: 0.85; }
-          }
-          @keyframes auroraReverse {
-            0% { transform: rotate(0deg) scale(1.02); opacity: 0.75; }
-            50% { transform: rotate(-25deg) scale(1.06); opacity: 0.55; }
-            100% { transform: rotate(0deg) scale(1.02); opacity: 0.75; }
-          }
-        `,
-      }}
-    />
   );
 }

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400">
+  <defs>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f7f1e9" stop-opacity="0.0"/>
+      <stop offset="100%" stop-color="#f7f1e9" stop-opacity="0.35"/>
+    </linearGradient>
+    <style>
+      .line { stroke:#d8c6b4; stroke-width:3; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+      .thin { stroke-width:2; }
+      .dot { fill:#d8c6b4; }
+    </style>
+  </defs>
+
+  <!-- soft background wash -->
+  <rect x="0" y="0" width="1200" height="400" fill="url(#fade)"/>
+  
+  <!-- ground lines -->
+  <path class="line thin" d="M80 320 H1120" opacity="0.6"/>
+  <path class="line thin" d="M160 338 H1040" opacity="0.3"/>
+  <path class="line thin" d="M280 352 H920" opacity="0.2"/>
+
+  <!-- left low-rise blocks -->
+  <rect x="120" y="260" width="36" height="60" class="line"/>
+  <rect x="170" y="238" width="48" height="82" class="line"/>
+  <rect x="230" y="210" width="54" height="110" class="line"/>
+  <line x1="257" y1="210" x2="257" y2="320" class="line thin" opacity="0.5"/>
+
+  <!-- mid skyline complex -->
+  <polygon points="320,320 320,170 360,130 360,320" class="line"/>
+  <rect x="375" y="200" width="55" height="120" class="line"/>
+  <rect x="450" y="150" width="70" height="170" class="line"/>
+  <rect x="455" y="160" width="60" height="20" class="line thin" opacity="0.35"/>
+  <rect x="455" y="190" width="60" height="20" class="line thin" opacity="0.35"/>
+
+  <!-- tower with spire (needle) -->
+  <line x1="540" y1="120" x2="540" y2="320" class="line"/>
+  <circle cx="540" cy="170" r="28" class="line"/>
+  <line x1="540" y1="120" x2="540" y2="100" class="line thin"/>
+  <rect x="514" y="320" width="52" height="0.01" fill="#d8c6b4"/>
+
+  <!-- central tall buildings -->
+  <polygon points="600,320 600,90 650,60 650,320" class="line"/>
+  <polygon points="670,320 670,180 730,140 730,320" class="line"/>
+  <rect x="685" y="200" width="30" height="18" class="line thin" opacity="0.4"/>
+  <rect x="685" y="230" width="30" height="18" class="line thin" opacity="0.4"/>
+  <rect x="685" y="260" width="30" height="18" class="line thin" opacity="0.4"/>
+
+  <!-- right-side mid/high rise -->
+  <rect x="760" y="170" width="70" height="150" class="line"/>
+  <polygon points="850,320 850,190 890,170 890,320" class="line"/>
+  <rect x="905" y="210" width="58" height="110" class="line"/>
+  <polygon points="990,320 990,195 1015,170 1040,195 1040,320" class="line"/>
+
+  <!-- small church / house cluster -->
+  <polygon points="1065,320 1065,240 1090,220 1115,240 1115,320" class="line"/>
+  <rect x="1085" y="260" width="16" height="26" class="line thin"/>
+  <circle cx="1099" cy="248" r="4" class="dot" opacity="0.45"/>
+
+  <!-- subtle water lines under skyline -->
+  <path class="line thin" d="M220 365 H980" opacity="0.15"/>
+  <path class="line thin" d="M260 375 H820" opacity="0.12"/>
+</svg>

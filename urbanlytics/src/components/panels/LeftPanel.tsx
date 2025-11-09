@@ -175,3 +175,68 @@ export function AnalyticsSidebar({ data }: AnalyticsSidebarProps) {
     </aside>
   );
 }
+
+const demoCommunity: CommunityData = {
+  name: "Riverside Quarter",
+  city: "Calgary",
+  description: "A riverside neighbourhood blending cultural venues, green corridors, and tech-forward infrastructure.",
+  primaryMetrics: [
+    {
+      icon: "Shield",
+      label: "Safety index",
+      score: 82,
+      cityAverage: 74,
+      description: "Crime incidents are trending downward with expanded community patrol coverage.",
+      color: "from-blue-500 to-teal-500",
+      trend: "+5 pts vs last month",
+    },
+    {
+      icon: "Home",
+      label: "Housing stability",
+      score: 76,
+      cityAverage: 68,
+      description: "Balanced mix of long-term rentals and owner-occupied homes keeps turnover low.",
+      color: "from-violet-500 to-indigo-500",
+      trend: "+3 pts vs city avg",
+    },
+    {
+      icon: "Wind",
+      label: "Air quality",
+      score: 88,
+      cityAverage: 71,
+      description: "Prevailing winds and active tree canopy projects maintain excellent AQI readings.",
+      color: "from-emerald-500 to-lime-500",
+      trend: "Steady month-over-month",
+    },
+  ],
+  secondaryMetrics: [
+    {
+      icon: "GraduationCap",
+      label: "Schools + STEM labs",
+      score: 84,
+      description: "Two magnet programs and a new STEM incubator serve K-12 learners.",
+    },
+    {
+      icon: "Bus",
+      label: "Transit reach",
+      score: 78,
+      description: "Light-rail access plus five rapid bus corridors within a 10-minute walk.",
+    },
+    {
+      icon: "UtensilsCrossed",
+      label: "Food access",
+      score: 72,
+      description: "Local grocers and late-night cafés keep amenity gaps low.",
+    },
+    {
+      icon: "Trees",
+      label: "Green canopy",
+      score: 81,
+      description: "Urban forest program adds 400+ trees every spring.",
+    },
+  ],
+};
+
+export default function LeftPanel() {
+  return <AnalyticsSidebar data={demoCommunity} />;
+}
