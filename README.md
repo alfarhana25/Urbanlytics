@@ -45,7 +45,7 @@ Our system can integrate open data APIs (e.g. **OpenStreetMap**, **World Bank**,
    The interface uses a clean, minimal UI for accessibility and performance.
 
 2. **Visualization Layer**:  
-   Dynamic heat maps are generated using **Mapbox GL JS** or **Leaflet**, adapting color scales based on normalized indicator values.
+   Dynamic heat maps are generated using **Leaflet**, adapting color scales based on normalized indicator values.
 
 ---
 
